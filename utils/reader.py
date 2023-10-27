@@ -117,11 +117,11 @@ class CustomDataset(Dataset):
         if self.modal=='eeg':
             sample=preprocess_eeg_data(sample)
         # 数据增强
-        # if self.augment_configs:
-        #     # 只有训练的时候才会增强数据
-        #     if self.mode.startswith('train'):
-        #         # pass
-        #         sample, sample_rate = self.augment_audio(sample, sample_rate)
+        if self.augment_configs:
+            # 只有训练的时候才会增强数据
+            if self.mode.startswith('train'):
+                # pass
+                sample, sample_rate = self.augment_audio(sample, sample_rate)
         # 重采样
 
         if self.modal=='eeg':
@@ -292,12 +292,12 @@ class CustomDataset(Dataset):
                     # snr_dB = torch.randint(min_snr_dB, max_snr_dB,(1,)).tolist()[0]
                     #
                     # sample = self.add_noise(sample, sample_rate, noise_path=noise_path, snr_dB=snr_dB)
-                elif self.modal == 'eeg' and torch.rand(1).tolist()[0] < config['prob']:
+                elif self.modal == 'eeg':
                     # eeg 目前是做椒盐噪声，即随机掩码
                     # print('eeg mask')
                     time_mask_len=torch.randint(40, 800, (1,)).tolist()[0]
                     ch_mask_len=torch.randint(1, 4, (1,)).tolist()[0]
-                    prob=torch.rand(1).tolist()[0]*0.3
+                    prob=torch.rand(1).tolist()[0]*0.3+0.3
                     mask=random_discrete_only_mask(unit=(ch_mask_len, time_mask_len), prob=prob,signal_shape=sample.shape)
                     mask=np.array(mask)
                     sample=sample*mask

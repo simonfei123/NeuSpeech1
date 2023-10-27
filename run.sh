@@ -225,6 +225,15 @@ CUDA_VISIBLE_DEVICES=5,6 torchrun --nproc_per_node=2 finetune.py --per_device_tr
  --base_model='/home/yyang/dataset/multi_media/transformers_whisper_models/whisper-small-finetune'
 
 
+# output29 lora ft
+CUDA_VISIBLE_DEVICES=5,6 torchrun --nproc_per_node=2 finetune.py --per_device_train_batch_size=4\
+ --per_device_eval_batch_size=4 --output_dir='output29' --eval_steps=500 --save_steps=500 --learning_rate=1e-3 --fp16=True\
+ --num_train_epochs=500 --warmup_steps=100\
+ --use_8bit=False --num_workers=6 --modal='eeg' --eeg_ch=64 --sampling_rate=1000\
+ --train_data='/home/yyang/dataset/multi_media/formal_dataset/cut_seg10s/train_data.jsonl'\
+ --test_data='/home/yyang/dataset/multi_media/formal_dataset/cut_seg10s/val_data.jsonl'\
+ --base_model='/home/yyang/dataset/multi_media/transformers_whisper_models/whisper-small-finetune'\
+ --lora_model="/home/yyang/research/eeg2text/output28/whisper-small-finetune/checkpoint-30000/"
 
 CUDA_VISIBLE_DEVICES=4 python merge_lora.py --modal='eeg' --output_dir='models2/'\
  --lora_model="/home/yyang/research/eeg2text/output18/whisper-small-finetune/checkpoint-35000/"
