@@ -242,6 +242,24 @@ CUDA_VISIBLE_DEVICES=4 python evaluation.py\
  --test_data=/home/yyang/dataset/multi_media/formal_dataset/cut_seg10s/test_data.jsonl\
  --model_path=models2/whisper-small-finetune-finetune/\
  --modal='eeg' --sampling_rate=1000 --eeg_ch=64
+
+
+
+# output30 lora ft
+CUDA_VISIBLE_DEVICES=5,6 torchrun --nproc_per_node=2 finetune.py --per_device_train_batch_size=4\
+ --per_device_eval_batch_size=4 --output_dir='output30' --eval_steps=1000 --save_steps=1000 --learning_rate=1e-3 --fp16=True\
+ --num_train_epochs=500 --warmup_steps=100\
+ --use_8bit=False --num_workers=6 --modal='eeg' --eeg_ch=64 --sampling_rate=1000\
+ --train_data='/home/yyang/dataset/multi_media/formal_dataset/cut_seg5s_singe_sentence/train_data.jsonl'\
+ --test_data='/home/yyang/dataset/multi_media/formal_dataset/cut_seg5s_singe_sentence/val_data.jsonl'\
+ --base_model='/home/yyang/dataset/multi_media/transformers_whisper_models/whisper-small-finetune'
+
+CUDA_VISIBLE_DEVICES=5 python evaluation.py\
+ --model_path='/home/yyang/dataset/multi_media/transformers_whisper_models/whisper-small-finetune'\
+ --lora_model='/home/yyang/research/eeg2text/output30/whisper-small-finetune/checkpoint-215000/'\
+ --test_data='/home/yyang/dataset/multi_media/formal_dataset/cut_seg5s_singe_sentence/test_data.jsonl'\
+ --modal='eeg' --sampling_rate=1000 --eeg_ch=64 --batch_size=16 --num_workers=4
+
 # 下载预训练模型
 bypy downdir transformers_whisper_models/whisper-small-finetune /home/yyang/dataset/multi_media/transformers_whisper_models/whisper-small-finetune
 

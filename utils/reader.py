@@ -2,7 +2,7 @@ import json
 import os
 import sys
 from typing import List
-from utils.augment_eeg import random_discrete_only_mask
+from utils.augment_eeg import RandomShapeMasker,shift_data
 import librosa
 import numpy as np
 import soundfile
@@ -83,15 +83,16 @@ class CustomDataset(Dataset):
 
     # 加载数据列表
     def _load_data_list(self):
-        if self.mode.startswith('train'):
-            num=1000
-            self.data_list = read_jsonlines(self.data_list_path)[:num]
-        elif self.mode.startswith('val'):
-            num=10
-            self.data_list = read_jsonlines(self.data_list_path)#[500:600]
-        else:
-            num=None
-            self.data_list = read_jsonlines(self.data_list_path)[:num]
+        # if self.mode.startswith('train'):
+        #     # num=1000
+        #     self.data_list = read_jsonlines(self.data_list_path)#[:num]
+        # elif self.mode.startswith('val'):
+        #     # num=10
+        #     self.data_list = read_jsonlines(self.data_list_path)[500:600]
+        # else:
+        #     num=None
+        #     self.data_list = read_jsonlines(self.data_list_path)[:num]
+        self.data_list = read_jsonlines(self.data_list_path)
         print(f'num of data:{len(self.data_list)} mode:{self.mode}')
 
     # 从数据列表里面获取音频数据、采样率和文本
@@ -104,8 +105,9 @@ class CustomDataset(Dataset):
         language = data_list["language"] if 'language' in data_list.keys() else None
         if self.modal=='eeg':
             sample=np.load(audio_file)
+
+            assert sample.shape[0]<sample.shape[1],f'eeg shape should be [ch,len],now shape is {sample.shape},data idx{idx}'
             sample=sample[:self.modal_ch]
-            assert sample.shape[0]<sample.shape[1],'eeg shape should be [ch,len]'
             sample=sample.T # convert to shape[len,ch]
             sample_rate=self.signal_sample_rate
         elif self.modal=='speech':
@@ -115,7 +117,8 @@ class CustomDataset(Dataset):
 
         sample = sample.T  # eeg:[ch, len]
         if self.modal=='eeg':
-            sample=preprocess_eeg_data(sample)
+            sample,clipped_ratio=preprocess_eeg_data(sample)
+            assert clipped_ratio<0.2
         # 数据增强
         if self.augment_configs:
             # 只有训练的时候才会增强数据
@@ -152,45 +155,63 @@ class CustomDataset(Dataset):
         data['labels'] = labels + [self.endoftext]
         return data
 
+    def shift_data_transcript(self,sample,transcript):
+        assert self.modal=='eeg'
+        assert isinstance(transcript, list), f"transcript应该为list，当前为：{type(transcript)}"
+        length=sample.shape[1]
+        max_shift=int(self.max_duration*self.signal_sample_rate)-length
+        now_shift=np.random.randint(max_shift,size=None)
+        sample=shift_data(sample,now_shift)
+        now_shift_time=now_shift/self.signal_sample_rate
+        for t in transcript:
+            # 将目标文本编码为标签ID
+            t['start']=t['start']+now_shift_time
+            t['end']=t['end']+now_shift_time
+        return sample,transcript
+
+
     def __getitem__(self, idx):
-        # try:
-        # 从数据列表里面获取音频数据、采样率和文本
-        sample, sample_rate, transcript, language = self._get_list_data(idx=idx)
-        # 可以为单独数据设置语言
-        self.processor.tokenizer.set_prefix_tokens(language=language if language is not None else self.language)
-        if len(transcript) > 0:
-            # 加载带有时间戳的文本
-            if self.timestamps:
-                data = self._load_timestamps_transcript(transcript=transcript)
-                if self.modal=='speech':
-                    data["input_features"] = self.processor(audio=sample,
-                                                            sampling_rate=self.signal_sample_rate).input_features
-                    # print(f'input_features:{data["input_features"][0].shape}')
+        try:
+            # 从数据列表里面获取音频数据、采样率和文本
+            sample, sample_rate, transcript, language = self._get_list_data(idx=idx)
+            # 将sample进行时间漂移，并将transcript的时间对齐。
+            if self.mode=='train':
+                sample,transcript=self.shift_data_transcript(sample,transcript)
+            # 可以为单独数据设置语言
+            self.processor.tokenizer.set_prefix_tokens(language=language if language is not None else self.language)
+            if len(transcript) > 0:
+                # 加载带有时间戳的文本
+                if self.timestamps:
+                    data = self._load_timestamps_transcript(transcript=transcript)
+                    if self.modal=='speech':
+                        data["input_features"] = self.processor(audio=sample,
+                                                                sampling_rate=self.signal_sample_rate).input_features
+                        # print(f'input_features:{data["input_features"][0].shape}')
+                    else:
+                        data["input_features"]=self.padding_sample(sample)
                 else:
-                    data["input_features"]=self.padding_sample(sample)
+                    if self.modal=='speech':
+                        data = self.processor(audio=sample, sampling_rate=self.signal_sample_rate, text=transcript)
+                    else:
+                        data={
+                            'input_features':self.padding_sample(sample),
+                            'labels':self.process_transcript(transcript),
+                        }
+
             else:
+                # 如果没有文本，则使用<|nocaptions|>标记
+                print('没有文本')
                 if self.modal=='speech':
-                    data = self.processor(audio=sample, sampling_rate=self.signal_sample_rate, text=transcript)
+                    data = self.processor(audio=sample, sampling_rate=self.signal_sample_rate)
                 else:
-                    data={
-                        'input_features':self.padding_sample(sample),
-                        'labels':self.process_transcript(transcript),
-                    }
+                    data= {'input_features': self.padding_sample(sample),
+                           'labels': [self.startoftranscript, self.nocaptions, self.endoftext]}
+            # print(f'mode:{self.mode}   data:{idx}')
+            return data
 
-        else:
-            # 如果没有文本，则使用<|nocaptions|>标记
-            print('没有文本')
-            if self.modal=='speech':
-                data = self.processor(audio=sample, sampling_rate=self.signal_sample_rate)
-            else:
-                data= {'input_features': self.padding_sample(sample),
-                       'labels': [self.startoftranscript, self.nocaptions, self.endoftext]}
-        # print(f'mode:{self.mode}   data:{idx}')
-        return data
-
-        # except Exception as e:
-        #     print(f'读取数据出错，序号：{idx}，错误信息：{e}', file=sys.stderr)
-        #     return self.__getitem__(torch.randint(0, self.__len__(),(1,)).tolist()[0])
+        except Exception as e:
+            print(f'读取数据出错，序号：{idx}，错误信息：{e}', file=sys.stderr)
+            return self.__getitem__(torch.randint(0, self.__len__(),(1,)).tolist()[0])
 
     def padding_sample(self,sample):
         assert self.modal == 'eeg'
@@ -251,16 +272,16 @@ class CustomDataset(Dataset):
             #         pass
             #     else:
             #         raise NotImplementedError
-            if config['type'] == 'shift' and torch.rand(1).tolist()[0]< config['prob']:
-                min_shift_ms, max_shift_ms = config['params']['min_shift_ms'], config['params']['max_shift_ms']
-                shift_ms = torch.randint(min_shift_ms, max_shift_ms,(1,)).tolist()[0]
-                if self.modal == 'speech':
-                    sample = self.shift(sample, sample_rate, shift_ms=shift_ms)
-                elif self.modal == 'eeg':
-                    sample = self.shift(sample.T, sample_rate, shift_ms=shift_ms)
-                    sample = sample.T
-                else:
-                    raise NotImplementedError
+            # if config['type'] == 'shift' and torch.rand(1).tolist()[0]< config['prob']:
+            #     min_shift_ms, max_shift_ms = config['params']['min_shift_ms'], config['params']['max_shift_ms']
+            #     shift_ms = torch.randint(min_shift_ms, max_shift_ms,(1,)).tolist()[0]
+            #     if self.modal == 'speech':
+            #         sample = self.shift(sample, sample_rate, shift_ms=shift_ms)
+            #     elif self.modal == 'eeg':
+            #         sample = self.shift(sample.T, sample_rate, shift_ms=shift_ms)
+            #         sample = sample.T
+            #     else:
+            #         raise NotImplementedError
             # if config['type'] == 'volume' and torch.rand(1).tolist()[0] < config['prob']:
             #     min_gain_dBFS, max_gain_dBFS = config['params']['min_gain_dBFS'], config['params']['max_gain_dBFS']
             #     gain = torch.randint(min_gain_dBFS, max_gain_dBFS,(1,)).tolist()[0]
@@ -298,12 +319,13 @@ class CustomDataset(Dataset):
                     time_mask_len=torch.randint(40, 800, (1,)).tolist()[0]
                     ch_mask_len=torch.randint(1, 4, (1,)).tolist()[0]
                     prob=torch.rand(1).tolist()[0]*0.3+0.3
-                    mask=random_discrete_only_mask(unit=(ch_mask_len, time_mask_len), prob=prob,signal_shape=sample.shape)
+                    augmentor=RandomShapeMasker(unit=(ch_mask_len,time_mask_len),mask_prob=prob,channel_num=(1,10),random_types=(1,2,3))
+                    mask=augmentor(sample.shape)
+                    del augmentor
                     mask=np.array(mask)
                     sample=sample*mask
                 else:
                     raise NotImplementedError
-
         return sample, sample_rate
 
     # 改变语速

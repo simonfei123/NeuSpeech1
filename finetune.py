@@ -248,7 +248,7 @@ trainer = Seq2SeqTrainer(args=training_args,
                          data_collator=data_collator,
                          tokenizer=processor.feature_extractor,
                          callbacks=[SavePeftModelCallback],
-                         compute_metrics=compute_accuracy
+                         # compute_metrics=compute_accuracy
                          )
 model.config.use_cache = False
 trainer._load_from_checkpoint = load_from_checkpoint

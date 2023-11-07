@@ -488,6 +488,10 @@ def combine_sentences_within_time_limit(sentences, time_limit):
     return combinations
 
 
+def combine_single_sentences(sentences):
+    return [[sentence] for sentence in sentences]
+
+
 def check_chinese_punctuation(text, chinese_punctuation='[。？]'):
     # 除了末尾是chinese_punctuation中的字符的，如果有符号就变句号，没有符号就加句号。
     # 定义中文句号和问号的正则表达式

@@ -22,7 +22,12 @@ def preprocess_eeg_data(data):
   threshold = 20
   data[np.abs(data) > threshold] = np.sign(data[np.abs(data) > threshold]) * threshold
 
-  return data
+  threshold_mask = np.abs(data) > threshold
+  num_clipped = np.sum(threshold_mask)
+
+  # 计算比例
+  clipped_ratio = num_clipped / (data.shape[0]*data.shape[1])
+  return data,clipped_ratio
 
 
 def print_arguments(args):

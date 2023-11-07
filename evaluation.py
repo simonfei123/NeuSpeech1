@@ -1,6 +1,7 @@
 import argparse
 import functools
 import gc
+import json
 import os
 
 import evaluate
@@ -35,7 +36,7 @@ add_arg("min_audio_len",     type=float, default=0.5,  help="最小的音频长�
 add_arg("max_audio_len",     type=float, default=30,   help="最大的音频长度，单位秒")
 add_arg("local_files_only",  type=bool,  default=True, help="是否只在本地加载模型，不尝试下载")
 add_arg("task",       type=str, default="transcribe", choices=['transcribe', 'translate'], help="模型的任务")
-add_arg("metric",     type=str, default="cer",        choices=['cer', 'wer'],              help="评估方式")
+add_arg("metric",     type=str, default="fulleval",        choices=['cer', 'wer','fulleval'],              help="评估方式")
 args = parser.parse_args()
 print_arguments(args)
 
@@ -145,4 +146,7 @@ for step, batch in enumerate(tqdm(eval_dataloader)):
     gc.collect()
 # 计算评估结果
 m = metric.compute()
-print(f"评估结果：{args.metric}={round(m, 5)}")
+print(f"评估结果：{m}")
+json_file_path=os.path.join(args.lora_model,'eval.json')
+with open(json_file_path,'w') as f:
+    json.dump(m,f)

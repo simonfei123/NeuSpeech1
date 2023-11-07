@@ -26,44 +26,34 @@ def random_discrete_only_mask(signal_shape, unit=(1, 40), prob=0.5):
     return pre_mask
 
 
-def random_discrete_mask(signal, unit=(1, 40), prob=0.5):
-    # signal: [64, 2000] tensor
-    # unit:[1,40]
-    length = int(np.ceil(signal.shape[1] / unit[1]))
-    channel_num = int(np.ceil(signal.shape[0] / unit[0]))
-    pre_mask = torch.rand(channel_num, length)
-    pre_mask[pre_mask >= prob] = 1
-    pre_mask[pre_mask < prob] = 0
-    pre_mask = torch.repeat_interleave(pre_mask, int(np.ceil(signal.shape[0] / channel_num)), dim=0)
-    pre_mask = torch.repeat_interleave(pre_mask, int(np.ceil(signal.shape[1] / length)), dim=1)[:signal.shape[0],
-               :signal.shape[1]]
-    signal = signal * pre_mask
-    return signal, pre_mask
-
-
-def random_channel_mask(signal, low=1, high=32):
+def random_channel_mask(signal_shape, low=1, high=32):
     # 随机选择掩码通道数量
     mask_size = torch.randint(low, high + 1, (1,)).item()
 
     # 随机选择要掩码的通道
-    channels = torch.randperm(signal.shape[0])[:mask_size]
-    mask = torch.ones_like(signal)
+    channels = torch.randperm(signal_shape[0])[:mask_size]
+    mask = torch.ones(signal_shape)
     # 对选择的通道进行掩码
     mask[channels, :] = 0
 
-    return signal * mask, mask
+    return mask
 
 
-def random_length_mask(signal, unit_length=40, low_prob=0.2, high_prob=0.8):
+def random_length_mask(signal_shape, unit_length=40, low_prob=0.2, high_prob=0.8):
     prob = random_prob(low_prob, high_prob)
-    length = int(np.ceil(signal.shape[1] / unit_length))
+    length = int(np.ceil(signal_shape[1] / unit_length))
     pre_mask = torch.rand(1, length)
     pre_mask[pre_mask >= prob] = 1
     pre_mask[pre_mask < prob] = 0
-    pre_mask = pre_mask.repeat_interleave(signal.shape[0], axis=0)
+    pre_mask = pre_mask.repeat_interleave(signal_shape[0], axis=0)
     pre_mask = pre_mask.repeat_interleave(unit_length, axis=1)
-    pre_mask = pre_mask[:, :signal.shape[1]]
-    return signal * pre_mask, pre_mask
+    pre_mask = pre_mask[:, :signal_shape[1]]
+    return pre_mask
+
+
+def shift_data(eeg,shift):
+    eeg=np.pad(eeg,[[0,0],[shift,0]])
+    return eeg
 
 
 class RandomShapeMasker:
@@ -78,3 +68,10 @@ class RandomShapeMasker:
         random_type = np.random.choice(self.random_types, 1)[0]
         if random_type == 1:
             return random_discrete_only_mask(signal_shape, unit=self.unit, prob=self.mask_prob)
+        if random_type == 2:
+            return random_channel_mask(signal_shape, low=self.channel_num[0], high=self.channel_num[1])
+        if random_type == 3:
+            return random_length_mask(signal_shape, unit_length=self.unit[1],
+                                      low_prob=self.length_prob[0], high_prob=self.length_prob[1])
+        else:
+            raise NotImplementedError
