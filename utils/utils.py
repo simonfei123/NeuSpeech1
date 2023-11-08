@@ -7,6 +7,7 @@ from tqdm import tqdm
 import numpy as np
 from sklearn.preprocessing import RobustScaler
 
+import scipy.signal
 
 def preprocess_eeg_data(data):
 
@@ -29,6 +30,47 @@ def preprocess_eeg_data(data):
   clipped_ratio = num_clipped / (data.shape[0]*data.shape[1])
   return data,clipped_ratio
 
+
+def add_gaussian_noise(signal_input, snr_range):
+    # 获取信号的形状和通道数
+    ch, length = signal_input.shape
+
+    # 生成每个通道的信噪比
+    snr_per_channel = np.random.uniform(*snr_range, size=ch)
+
+    # 初始化噪声信号
+    noise_signal = np.zeros_like(signal_input)
+
+    # 逐通道添加高斯噪声
+    for i in range(ch):
+        # 计算当前通道的信噪比
+        snr = snr_per_channel[i]
+
+        # 计算当前通道的噪声标准差
+        noise_std = np.sqrt(np.mean(signal_input[i] ** 2) / (10 ** (snr / 10)))
+
+        # 生成高斯噪声
+        noise = np.random.normal(scale=noise_std, size=length)
+
+        # 添加噪声到当前通道
+        noise_signal[i] = signal_input[i] + noise
+
+    # 应用噪声
+    noisy_signal = signal_input + noise_signal
+
+    return noisy_signal
+
+def lowpass_filter(signal_input, cutoff_freq, sample_freq):
+    # 计算归一化的截止频率
+    normalized_cutoff_freq = cutoff_freq / (sample_freq / 2)
+
+    # 设计低通滤波器
+    b, a = scipy.signal.butter(4, normalized_cutoff_freq, btype='low', analog=False, output='ba')
+
+    # 应用滤波器
+    filtered_signal = scipy.signal.lfilter(b, a, signal_input, axis=0)
+
+    return filtered_signal
 
 def print_arguments(args):
     print("-----------  Configuration Arguments -----------")

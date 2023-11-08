@@ -89,6 +89,8 @@ test_dataset = CustomDataset(
     timestamps=args.timestamps,
     min_duration=args.min_audio_len,
     max_duration=args.max_audio_len)
+
+
 print(f"训练数据：{len(train_dataset)}，测试数据：{len(test_dataset)}")
 # 数据padding器
 data_collator = DataCollatorSpeechSeq2SeqWithPadding(processor=processor)
@@ -143,8 +145,8 @@ if args.resume_from_checkpoint:
     model = PeftModel.from_pretrained(model, args.resume_from_checkpoint, is_trainable=True)
 else:
     print(f'adding LoRA modules...')
-    prefixes = [f'model.encoder.layers.{i}.' for i in [0,1,2,3]]
-    # prefixes = ['.*model.encoder']
+    # prefixes = [f'model.encoder.layers.{i}.' for i in [0,1,2,3]]
+    prefixes = ['model.encoder']
     suffixes = ["k_proj", "q_proj", "v_proj", "out_proj", "fc1", "fc2"]
     # model_named_modules=[]
     target_modules = match_modules_string(model.named_modules(), prefixes, suffixes)

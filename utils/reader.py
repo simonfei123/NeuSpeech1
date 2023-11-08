@@ -10,9 +10,8 @@ import torch
 import torch.nn.functional as F
 from torch.utils.data import Dataset
 from tqdm import tqdm
-
 from utils.binary import DatasetReader
-from utils.utils import preprocess_eeg_data
+from utils.utils import preprocess_eeg_data, lowpass_filter, add_gaussian_noise
 import jsonlines
 from utils.process_utils import torch_random_choices
 def read_jsonlines(file_path):
@@ -123,8 +122,8 @@ class CustomDataset(Dataset):
         if self.augment_configs:
             # 只有训练的时候才会增强数据
             if self.mode.startswith('train'):
-                # pass
-                sample, sample_rate = self.augment_audio(sample, sample_rate)
+                pass
+                # sample, sample_rate = self.augment_audio(sample, sample_rate)
         # 重采样
 
         if self.modal=='eeg':
@@ -298,7 +297,15 @@ class CustomDataset(Dataset):
             #         pass
             #     else:
             #         raise NotImplementedError
+
+            if config['type'] == 'filter' and torch.rand(1).tolist()[0] < config['prob']:
+                if self.modal == 'eeg':
+                    cutoff_freq=np.random.uniform(config['params']['min_high_freq'],config['params']['max_high_freq'], size=None)
+                    sample=lowpass_filter(sample,cutoff_freq=cutoff_freq,sample_freq=self.signal_sample_rate)
             if config['type'] == 'noise' and torch.rand(1).tolist()[0] < config['prob']:
+                if self.modal == 'eeg':
+                    sample=add_gaussian_noise(sample,snr_range=(config['params']['min_snr_dB'],config['params']['max_snr_dB']))
+            if config['type'] == 'mask' and torch.rand(1).tolist()[0] < config['prob']:
                 if self.modal == 'speech':
                     pass
                     # min_snr_dB, max_snr_dB = config['params']['min_snr_dB'], config['params']['max_snr_dB']
@@ -316,10 +323,11 @@ class CustomDataset(Dataset):
                 elif self.modal == 'eeg':
                     # eeg 目前是做椒盐噪声，即随机掩码
                     # print('eeg mask')
-                    time_mask_len=torch.randint(40, 800, (1,)).tolist()[0]
+                    time_mask_len=torch.randint(40, 100, (1,)).tolist()[0]
                     ch_mask_len=torch.randint(1, 4, (1,)).tolist()[0]
-                    prob=torch.rand(1).tolist()[0]*0.3+0.3
-                    augmentor=RandomShapeMasker(unit=(ch_mask_len,time_mask_len),mask_prob=prob,channel_num=(1,10),random_types=(1,2,3))
+                    prob=torch.rand(1).tolist()[0]*0.3+0.1
+                    augmentor=RandomShapeMasker(unit=(ch_mask_len,time_mask_len),mask_prob=prob,
+                                                length_prob=(0.1,0.2),channel_num=(1,10),random_types=(1,2,3))
                     mask=augmentor(sample.shape)
                     del augmentor
                     mask=np.array(mask)

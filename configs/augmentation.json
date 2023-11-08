@@ -7,13 +7,30 @@
     "prob": 0.0
   },
   {
+    "type": "filter",
+    "params": {
+      "min_high_freq": 120,
+      "max_high_freq": 200
+    },
+    "prob": 0.2
+  },
+  {
     "type": "noise",
+    "params": {
+      "min_snr_dB": 20,
+      "max_snr_dB": 50,
+      "noise_dir": null
+    },
+    "prob": 0.2
+  },
+  {
+    "type": "mask",
     "params": {
       "min_snr_dB": 10,
       "max_snr_dB": 50,
       "noise_dir": null
     },
-    "prob": 0.5
+    "prob": 0.2
   },
   {
     "type": "speed",
