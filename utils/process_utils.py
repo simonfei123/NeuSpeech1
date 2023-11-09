@@ -21,6 +21,7 @@ from collections import Counter
 import jsonlines
 import re
 from hanziconv import HanziConv
+from scipy.signal import hilbert, butter, filtfilt
 
 
 def makedirs(path):
@@ -60,6 +61,35 @@ def get_segment_from_idx(array, idx):
     end = array[4 * idx + 1, 0]
     return (start, end)
 
+
+def multi_band_hilbert(data, bands):
+    # 输出张量形状
+    out = np.zeros((len(bands), data.shape[0]))
+
+    for i, band in enumerate(bands):
+
+        # 按每个频带设定带通滤波器
+        low, high = band
+        b, a = butter(4, [low, high], btype='band')
+
+        for j in range(data.shape[0]):
+            # 对每个通道进行滤波并计算希尔伯特变换强度
+            filtered = filtfilt(b, a, data[j, :])
+            _hilbert = np.abs(hilbert(filtered))
+            out[i, j] = np.mean(_hilbert)
+    out=out.reshape(-1)
+    return out
+
+def adjust_db_float(sound, db=-20):
+
+    assert isinstance(sound, np.ndarray), 'Sound must be np.ndarray'
+
+    max_amp = np.max(np.abs(sound)) # for floating point
+
+    sound *= (10.0 ** (db/20)) / max_amp
+
+    # No type conversion needed
+    return np.clip(sound, -1, 1)
 
 def get_audio_segment_from_idx(array, idx):
     # 看视频的时候的开始和结束
@@ -418,7 +448,7 @@ def combine_words_to_sentences_within_time_limit(word_list, time_limit):
 
     # 定义标点符号的正则表达式模式
     punctuation_pattern = r'[,.?!，。？]'
-
+    words=[]
     for word_idx, word in enumerate(word_list):
         word['word'] = HanziConv.toSimplified(word['word'])
 
@@ -430,32 +460,28 @@ def combine_words_to_sentences_within_time_limit(word_list, time_limit):
             # 如果加上这个词的总时间少于限制，就把这个词加上。
             # 然后再判断有没有标点符号，如果有标点符号，或者这个词大于4个字，或者下一个词的时间超过限制就结束这个句子。
             current_sentence += word['word']
+            words.append(word)
+            # 这是一些终止当前语句的条件
             cond1 = re.search(punctuation_pattern, word['word'])  # 在单词中是否有标点符号
             cond2 = len(word['word']) > 4  # 单词过长
-            if word_idx + 1 == len(word_list):  # 最后一个词
-                cond3 = True
-            else:  # 如果加入下一个单词时间超过限制
-                cond3 = word_list[word_idx + 1]['end'] - start_time > time_limit
+            cond3=word_idx + 1 == len(word_list)  # 已经是最后一个词
+            if not cond3:
+                cond4 = word_list[word_idx + 1]['end'] - start_time > time_limit  # 如果加了下一个词就会超时
+            else:
+                cond4=False
                 # 使用正则表达式匹配标点符号
-            if cond1 or cond2 or cond3:
+            if cond1 or cond2 or cond3 or cond4:
                 sentence = {
                     'text': current_sentence,
+                    'words': words,
                     'start': start_time,
                     'end': end_time
                 }
                 sentences.append(sentence)
                 current_sentence = ""
+                words = []
                 start_time = None
                 end_time = None
-
-    # 处理最后一个句子
-    if current_sentence:
-        sentence = {
-            'text': current_sentence,
-            'start': start_time,
-            'end': end_time
-        }
-        sentences.append(sentence)
 
     return sentences
 

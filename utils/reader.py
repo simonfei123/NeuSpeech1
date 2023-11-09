@@ -116,24 +116,28 @@ class CustomDataset(Dataset):
 
         sample = sample.T  # eeg:[ch, len]
         if self.modal=='eeg':
+            # 先滤波
+            sample = lowpass_filter(sample, cutoff_freq=50, sample_freq=self.signal_sample_rate)
+            sample = self.resample(sample,self.signal_sample_rate,200)
+            self.signal_sample_rate=200
             sample,clipped_ratio=preprocess_eeg_data(sample)
             assert clipped_ratio<0.2
         # 数据增强
         if self.augment_configs:
             # 只有训练的时候才会增强数据
             if self.mode.startswith('train'):
-                pass
-                # sample, sample_rate = self.augment_audio(sample, sample_rate)
+                # pass
+                sample, sample_rate = self.augment_audio(sample, sample_rate)
         # 重采样
 
-        if self.modal=='eeg':
-            if self.signal_sample_rate != 1000:
-                sample = self.resample(sample, orig_sr=1000, target_sr=self.signal_sample_rate)
-        elif self.modal=='speech':
-            if self.signal_sample_rate != sample_rate:
-                sample = self.resample(sample, orig_sr=sample_rate, target_sr=self.signal_sample_rate)
-        else:
-            raise NotImplementedError
+        # if self.modal=='eeg':
+        #     if self.signal_sample_rate != 1000:
+        #         sample = self.resample(sample, orig_sr=1000, target_sr=self.signal_sample_rate)
+        # elif self.modal=='speech':
+        #     if self.signal_sample_rate != sample_rate:
+        #         sample = self.resample(sample, orig_sr=sample_rate, target_sr=self.signal_sample_rate)
+        # else:
+        #     raise NotImplementedError
         # sample should be of shape [ch,len]
         return sample, sample_rate, transcript, language
 
@@ -219,7 +223,7 @@ class CustomDataset(Dataset):
         # print(f'before pad eeg:{sample.shape}')
         sample=np.pad(sample,pad_width=((0,0),(0,max_length-sample.shape[-1])))
         # print(f'sample.shape:{sample.shape}')
-        assert sample.shape==(self.modal_ch,30000) ,' sample shape should be [self.modal_ch,30000]'
+        assert sample.shape==(self.modal_ch,int(self.signal_sample_rate*30)) ,' sample shape should be [self.modal_ch,int(self.signal_sample_rate*30))]'
         # print(f'after pad eeg:{sample.shape}')
         return [sample]
 
@@ -298,35 +302,23 @@ class CustomDataset(Dataset):
             #     else:
             #         raise NotImplementedError
 
-            if config['type'] == 'filter' and torch.rand(1).tolist()[0] < config['prob']:
-                if self.modal == 'eeg':
-                    cutoff_freq=np.random.uniform(config['params']['min_high_freq'],config['params']['max_high_freq'], size=None)
-                    sample=lowpass_filter(sample,cutoff_freq=cutoff_freq,sample_freq=self.signal_sample_rate)
+            # if config['type'] == 'filter' and torch.rand(1).tolist()[0] < config['prob']:
+            #     if self.modal == 'eeg':
+            #         cutoff_freq=np.random.uniform(config['params']['min_high_freq'],config['params']['max_high_freq'], size=None)
+            #         sample=lowpass_filter(sample,cutoff_freq=cutoff_freq,sample_freq=self.signal_sample_rate)
             if config['type'] == 'noise' and torch.rand(1).tolist()[0] < config['prob']:
                 if self.modal == 'eeg':
                     sample=add_gaussian_noise(sample,snr_range=(config['params']['min_snr_dB'],config['params']['max_snr_dB']))
             if config['type'] == 'mask' and torch.rand(1).tolist()[0] < config['prob']:
                 if self.modal == 'speech':
                     pass
-                    # min_snr_dB, max_snr_dB = config['params']['min_snr_dB'], config['params']['max_snr_dB']
-                    # if self.noises_path is None:
-                    #     self.noises_path = []
-                    #     noise_dir = config['params']['noise_dir']
-                    #     if os.path.exists(noise_dir):
-                    #         for file in os.listdir(noise_dir):
-                    #             self.noises_path.append(os.path.join(noise_dir, file))
-                    # noise_path = torch_random_choices(self.noises_path,1)[0]
-                    #
-                    # snr_dB = torch.randint(min_snr_dB, max_snr_dB,(1,)).tolist()[0]
-                    #
-                    # sample = self.add_noise(sample, sample_rate, noise_path=noise_path, snr_dB=snr_dB)
                 elif self.modal == 'eeg':
                     # eeg 目前是做椒盐噪声，即随机掩码
                     # print('eeg mask')
-                    time_mask_len=torch.randint(40, 100, (1,)).tolist()[0]
+                    time_mask_len=torch.randint(20, 40, (1,)).tolist()[0]
                     ch_mask_len=torch.randint(1, 4, (1,)).tolist()[0]
-                    prob=torch.rand(1).tolist()[0]*0.3+0.1
-                    augmentor=RandomShapeMasker(unit=(ch_mask_len,time_mask_len),mask_prob=prob,
+                    prob=torch.rand(1).tolist()[0]*0.3
+                    augmentor=RandomShapeMasker(unit=(ch_mask_len,time_mask_len),mask_prob=prob,length_unit=20,
                                                 length_prob=(0.1,0.2),channel_num=(1,10),random_types=(1,2,3))
                     mask=augmentor(sample.shape)
                     del augmentor

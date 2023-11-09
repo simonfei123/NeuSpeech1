@@ -57,10 +57,11 @@ def shift_data(eeg,shift):
 
 
 class RandomShapeMasker:
-    def __init__(self, unit=(1, 40), mask_prob=0.7, channel_num=(1, 32), length_prob=(0.2, 0.4), random_types=(1,)):
+    def __init__(self, unit=(1, 40), mask_prob=0.7, channel_num=(1, 32), length_unit=20, length_prob=(0.2, 0.4), random_types=(1,)):
         self.unit = unit
         self.mask_prob = mask_prob
         self.channel_num = channel_num
+        self.length_unit = length_unit
         self.length_prob = length_prob
         self.random_types = random_types
 
@@ -71,7 +72,7 @@ class RandomShapeMasker:
         if random_type == 2:
             return random_channel_mask(signal_shape, low=self.channel_num[0], high=self.channel_num[1])
         if random_type == 3:
-            return random_length_mask(signal_shape, unit_length=self.unit[1],
+            return random_length_mask(signal_shape, unit_length=self.length_unit,
                                       low_prob=self.length_prob[0], high_prob=self.length_prob[1])
         else:
             raise NotImplementedError

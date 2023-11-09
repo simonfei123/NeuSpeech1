@@ -110,7 +110,7 @@ for step, batch in enumerate(tqdm(eval_dataloader)):
         with torch.no_grad():
             if args.modal=='eeg':
                 input_features = F.gelu(model.pre_conv1(batch["input_features"].cuda()).cuda())
-                input_features = F.gelu(model.pre_conv2(input_features))
+                # input_features = F.gelu(model.pre_conv2(input_features))
             elif args.modal=='speech':
                 input_features = batch["input_features"].cuda()
 

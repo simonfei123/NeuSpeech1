@@ -159,7 +159,7 @@ else:
                                         ["model.encoder.conv1", "model.encoder.conv2"])
     elif args.modal == 'eeg':
         modules_to_save = match_modules(model.named_modules(), [''],
-                                        ["pre_conv1","pre_conv2", "model.encoder.conv1", "model.encoder.conv2"])
+                                        ["pre_conv1", "model.encoder.conv1", "model.encoder.conv2"])
     else:
         raise NotImplementedError
     if args.use_adalora:

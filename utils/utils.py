@@ -12,7 +12,7 @@ import scipy.signal
 def preprocess_eeg_data(data):
 
   # 1. Baseline correction
-  mean_baseline = data[:,:1000].mean(axis=1)
+  mean_baseline = data[:,:500].mean(axis=1)
   data = data - mean_baseline[:,None]
 
   # 2. Robust scaling
@@ -20,10 +20,10 @@ def preprocess_eeg_data(data):
   data = scaler.fit_transform(data)
 
   # 3. Clipping outliers
-  threshold = 20
+  threshold = 15
   data[np.abs(data) > threshold] = np.sign(data[np.abs(data) > threshold]) * threshold
-
-  threshold_mask = np.abs(data) > threshold
+  data=data/threshold
+  threshold_mask = np.abs(data) > 1
   num_clipped = np.sum(threshold_mask)
 
   # 计算比例
