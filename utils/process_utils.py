@@ -21,8 +21,31 @@ from collections import Counter
 import jsonlines
 import re
 from hanziconv import HanziConv
-from scipy.signal import hilbert, butter, filtfilt
+from scipy.signal import hilbert, butter, filtfilt,firwin
+import scipy.signal as sg
 
+
+def fir_filter(sample, sample_rate, low_cutoff=None, high_cutoff=None):
+
+    nyq=sample_rate/2
+    if low_cutoff is not None and high_cutoff is not None:
+        cutoff = [low_cutoff/nyq, high_cutoff/nyq]
+    elif low_cutoff is None and high_cutoff is not None:
+        cutoff=[0,high_cutoff/nyq]
+    elif low_cutoff is not None and high_cutoff is None:
+        cutoff=[low_cutoff/nyq,(nyq-1e-10)/nyq]
+    else:
+        raise ValueError("必须指定低通或高通边界")
+
+    ord = int(1200*max(cutoff))
+    ord |= 1  # 取奇数
+
+    b = sg.firwin(numtaps=ord,
+                  cutoff=cutoff,)
+
+    filtered = sg.lfilter(b, 1, sample)
+
+    return filtered
 
 def makedirs(path):
     dirname = os.path.dirname(path)
@@ -62,23 +85,19 @@ def get_segment_from_idx(array, idx):
     return (start, end)
 
 
-def multi_band_hilbert(data, bands):
-    # 输出张量形状
-    out = np.zeros((len(bands), data.shape[0]))
-
+def multi_band_hilbert(signal, sample_rate, bands):
+    out = np.zeros((len(bands), signal.shape[0]))
     for i, band in enumerate(bands):
-
-        # 按每个频带设定带通滤波器
         low, high = band
-        b, a = butter(4, [low, high], btype='band')
-
-        for j in range(data.shape[0]):
-            # 对每个通道进行滤波并计算希尔伯特变换强度
-            filtered = filtfilt(b, a, data[j, :])
-            _hilbert = np.abs(hilbert(filtered))
-            out[i, j] = np.mean(_hilbert)
-    out=out.reshape(-1)
+        for j in range(signal.shape[0]):
+            # 使用FIR滤波器滤波信号
+            filtered = fir_filter(signal[j, :], sample_rate, low, high)
+            # 计算希尔伯特变换的强度平均值
+            hilbert_env = np.abs(hilbert(filtered))
+            out[i, j] = np.mean(hilbert_env)
+    out = out.flatten()
     return out
+
 
 def adjust_db_float(sound, db=-20):
 
@@ -590,4 +609,8 @@ def correct_timing(sentences):
     for sent_idx, sent in enumerate(sentences):
         sentences[sent_idx]['start'] -= start
         sentences[sent_idx]['end'] -= start
+        for word_idx, word in enumerate(sent['words']):
+            word['start'] -= start
+            word['end'] -= start
+
     return sentences

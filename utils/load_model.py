@@ -726,7 +726,7 @@ class MyWhisperForConditionalGeneration(WhisperPreTrainedModel):
             # print('f456' * 99)
             if input_features is not None:
                 # dropout
-                F.dropout1d()
+                input_features=F.dropout1d(input_features)
                 input_features = F.gelu(self.pre_conv1(input_features))
                 # input_features = F.gelu(self.pre_conv2(input_features))
             else:

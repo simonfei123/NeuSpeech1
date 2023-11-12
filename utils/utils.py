@@ -9,7 +9,7 @@ from sklearn.preprocessing import RobustScaler
 
 import scipy.signal
 
-def preprocess_eeg_data(data):
+def preprocess_eeg_data(data,threshold = 10):
 
   # 1. Baseline correction
   mean_baseline = data[:,:500].mean(axis=1)
@@ -20,7 +20,7 @@ def preprocess_eeg_data(data):
   data = scaler.fit_transform(data)
 
   # 3. Clipping outliers
-  threshold = 15
+
   data[np.abs(data) > threshold] = np.sign(data[np.abs(data) > threshold]) * threshold
   data=data/threshold
   threshold_mask = np.abs(data) > 1
