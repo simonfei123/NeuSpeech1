@@ -30,7 +30,7 @@
       "max_snr_dB": 50,
       "noise_dir": null
     },
-    "prob": 0.2
+    "prob": 0.0
   },
   {
     "type": "speed",

@@ -6,8 +6,8 @@ import numpy as np
 import nltk
 import evaluate
 import datasets
-nltk.download('wordnet2021')
-nltk.download('omw-1.4')
+# nltk.download('wordnet2021')
+# nltk.download('omw-1.4')
 from nltk.corpus import wordnet2021 as wn
 
 from typing import List

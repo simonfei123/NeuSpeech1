@@ -624,7 +624,7 @@ class MyWhisperForConditionalGeneration(WhisperPreTrainedModel):
         # config.is_encoder_decoder=False
         super().__init__(config)
         self.modal_ch = modal_ch
-        self.pre_conv1 = nn.Conv1d(modal_ch, config.num_mel_bins, stride=2, kernel_size=5, padding=2)
+        self.pre_conv1 = nn.Conv1d(modal_ch, config.num_mel_bins, stride=1, kernel_size=3, padding=1)
         # self.pre_conv2 = nn.Conv1d(config.num_mel_bins, config.num_mel_bins, stride=5, kernel_size=11, padding=5)
         self.model = WhisperModel(config)
         self.proj_out = nn.Linear(config.d_model, config.vocab_size, bias=False)
@@ -726,7 +726,8 @@ class MyWhisperForConditionalGeneration(WhisperPreTrainedModel):
             # print('f456' * 99)
             if input_features is not None:
                 # dropout
-                input_features=F.dropout1d(input_features)
+                if self.training:
+                    input_features=F.dropout1d(input_features,0.2)
                 input_features = F.gelu(self.pre_conv1(input_features))
                 # input_features = F.gelu(self.pre_conv2(input_features))
             else:

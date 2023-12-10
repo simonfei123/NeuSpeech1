@@ -93,6 +93,7 @@ test_dataset = CustomDataset(
     max_duration=args.max_audio_len)
 
 
+
 print(f"训练数据：{len(train_dataset)}，测试数据：{len(test_dataset)}")
 # 数据padding器
 data_collator = DataCollatorSpeechSeq2SeqWithPadding(processor=processor)
@@ -116,7 +117,8 @@ elif args.modal=='eeg':
                                                         load_in_8bit=args.use_8bit,
                                                         device_map=device_map,
                                                         local_files_only=args.local_files_only,
-                                                        modal_ch=args.eeg_ch)
+                                                        modal_ch=args.eeg_ch,
+                                                            )
     if args.lora_model is not None:
         model = PeftModel.from_pretrained(model, args.lora_model, local_files_only=args.local_files_only)
         model = model.merge_and_unload()
@@ -151,7 +153,8 @@ else:
     prefixes = ['model.encoder']
     suffixes = ["k_proj", "q_proj", "v_proj", "out_proj", "fc1", "fc2"]
     # model_named_modules=[]
-    target_modules = match_modules_string(model.named_modules(), prefixes, suffixes)
+    target_modules = []
+    # target_modules = match_modules_string(model.named_modules(), prefixes, suffixes)
     print('target_modules')
     print(target_modules)
     # target_modules = ["k_proj", "q_proj", "v_proj", "out_proj", "fc1", "fc2"]
