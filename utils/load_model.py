@@ -624,8 +624,8 @@ class MyWhisperForConditionalGeneration(WhisperPreTrainedModel):
         # config.is_encoder_decoder=False
         super().__init__(config)
         self.modal_ch = modal_ch
-        self.pre_conv1 = nn.Conv1d(modal_ch, config.num_mel_bins, stride=1, kernel_size=3, padding=1)
-        # self.pre_conv2 = nn.Conv1d(config.num_mel_bins, config.num_mel_bins, stride=5, kernel_size=11, padding=5)
+        self.pre_conv1 = nn.Conv1d(modal_ch, config.num_mel_bins, stride=2, kernel_size=5, padding=1)
+        self.pre_conv2 = nn.Conv1d(config.num_mel_bins, config.num_mel_bins, stride=5, kernel_size=11, padding=5)
         self.model = WhisperModel(config)
         self.proj_out = nn.Linear(config.d_model, config.vocab_size, bias=False)
         # Initialize weights and apply final processing

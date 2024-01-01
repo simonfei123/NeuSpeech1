@@ -281,6 +281,11 @@ CUDA_VISIBLE_DEVICES=5,6 torchrun --nproc_per_node=2 finetune.py --per_device_tr
  --base_model='/home/yyang/dataset/multi_media/transformers_whisper_models/whisper-small-finetune'
  # 这个在训练集上非常好，可以达到0.18以下，在验证集上是1.4 。 是因为出问题了。resample 的时候并没有真的操作，实际的采样率仍然是1000Hz。
 
+CUDA_VISIBLE_DEVICES=5 python evaluation.py\
+ --model_path='/home/yyang/dataset/multi_media/transformers_whisper_models/whisper-small-finetune'\
+ --lora_model='/home/yyang/research/eeg2text/output32/whisper-small-finetune/checkpoint-167000/'\
+ --test_data='/home/yyang/dataset/multi_media/formal_dataset/cut_seg10s_singe_sentence/test_data.jsonl'\
+ --modal='eeg' --sampling_rate=1000 --eeg_ch=64 --batch_size=16 --num_workers=4
 # output33 lora ft
 CUDA_VISIBLE_DEVICES=5,6 torchrun --nproc_per_node=2 finetune.py --per_device_train_batch_size=8\
  --per_device_eval_batch_size=8 --output_dir='output33' --eval_steps=1000 --save_steps=1000 --learning_rate=1e-3 --fp16=True\

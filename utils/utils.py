@@ -11,24 +11,24 @@ import scipy.signal
 
 def preprocess_eeg_data(data,threshold = 10):
 
-  # 1. Baseline correction
-  mean_baseline = data[:,:500].mean(axis=1)
-  data = data - mean_baseline[:,None]
+    # 1. Baseline correction
+    mean_baseline = data[:,:500].mean(axis=1)
+    data = data - mean_baseline[:,None]
 
-  # 2. Robust scaling
-  scaler = RobustScaler()
-  data = scaler.fit_transform(data)
+    # 2. Robust scaling
+    scaler = RobustScaler()
+    data = scaler.fit_transform(data)
 
-  # 3. Clipping outliers
+    # 3. Clipping outliers
 
-  data[np.abs(data) > threshold] = np.sign(data[np.abs(data) > threshold]) * threshold
-  data=data/threshold
-  threshold_mask = np.abs(data) > 1
-  num_clipped = np.sum(threshold_mask)
+    data[np.abs(data) > threshold] = np.sign(data[np.abs(data) > threshold]) * threshold
+    data=data/threshold
+    threshold_mask = np.abs(data) > 1
+    num_clipped = np.sum(threshold_mask)
 
-  # 计算比例
-  clipped_ratio = num_clipped / (data.shape[0]*data.shape[1])
-  return data,clipped_ratio
+    # 计算比例
+    clipped_ratio = num_clipped / (data.shape[0]*data.shape[1])
+    return data,clipped_ratio
 
 
 def add_gaussian_noise(signal_input, snr_range):

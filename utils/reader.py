@@ -38,6 +38,7 @@ class CustomDataset(Dataset):
                  mode='train',
                  modal='eeg',
                  modal_ch=66,
+                 level='sentences',
                  language=None,
                  timestamps=False,
                  sample_rate=200,
@@ -62,7 +63,7 @@ class CustomDataset(Dataset):
         assert max_duration <= 30, f"max_duration不能大于30，当前为：{max_duration}"
         self.data_list_path = data_list_path
         self.mode = mode
-        self.level = 'words'
+        self.level = level
         self.processor = processor
         self.signal_sample_rate = sample_rate
         self.orig_sample_rate = orig_sample_rate
@@ -114,8 +115,7 @@ class CustomDataset(Dataset):
         if self.modal == 'eeg':
             sample = np.load(audio_file)
 
-            assert sample.shape[0] < sample.shape[
-                1], f'eeg shape should be [ch,len],now shape is {sample.shape},data idx{idx}'
+            assert sample.shape[0] < sample.shape[1], f'eeg shape should be [ch,len],now shape is {sample.shape},data idx{idx}'
             sample = sample[:self.modal_ch]
             sample = sample.T  # convert to shape[len,ch]
             sample_rate = self.orig_sample_rate
@@ -127,9 +127,9 @@ class CustomDataset(Dataset):
         sample = sample.T  # eeg:[ch, len]
         if self.modal == 'eeg':
             # 先滤波
-            sample = lowpass_filter(sample, cutoff_freq=150, sample_freq=self.orig_sample_rate)
-            # osamplelen=sample.shape
-            sample = self.resample(sample, self.orig_sample_rate, self.signal_sample_rate)
+            # sample = lowpass_filter(sample, cutoff_freq=150, sample_freq=self.orig_sample_rate)
+            # # osamplelen=sample.shape
+            # sample = self.resample(sample, self.orig_sample_rate, self.signal_sample_rate)
             # print(f'原sample{osamplelen},resample后长度{sample.shape},原sr是{self.orig_sample_rate},现sr是{self.signal_sample_rate}')
             sample, clipped_ratio = preprocess_eeg_data(sample)
             sample_rate = self.signal_sample_rate
