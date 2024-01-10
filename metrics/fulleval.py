@@ -1,5 +1,5 @@
 from nltk.translate.bleu_score import sentence_bleu, SmoothingFunction
-from metrics.bert_score import score as bert_score_f
+from metrics.chinese_bert_score import score as bert_score_f
 from nltk.translate.meteor_score import meteor_score
 from rouge import Rouge
 import numpy as np
@@ -57,6 +57,9 @@ else:
             tr.ReduceToListOfListOfChars(),
         ]
     )
+
+
+
 
 def compute_metrics(preds, labels):
     # 字符级别

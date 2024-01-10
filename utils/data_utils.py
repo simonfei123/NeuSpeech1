@@ -9,6 +9,21 @@ import torch
 import numpy as np
 import matplotlib.pyplot as plt
 
+import string
+
+
+def generate_random_string(length):
+    # 获取所有可能的字符集合
+    all_chars = string.ascii_letters + string.digits
+    all_chars=list(all_chars)
+    # 确保长度不超过字符集合的大小
+    # length = min(length, len(all_chars))
+
+    # 从字符集合中随机选择字符直到达到指定的长度
+    random_string = ''.join(np.random.choice(all_chars, length))
+
+    return random_string
+
 
 def random_prob(low_prob=0.2, high_prob=0.8):
     # 生成0到1之间的随机数
@@ -119,6 +134,12 @@ def to_simple(text: str or List[str]):
 
 
 
+def contains_valid_letters(s, prefix='Ġ',biaodian=',.\'`:?'):
+    if len(s)<1:
+        return False
+    if prefix==s[0]:
+        s=s[1:]
+    return re.match(f"^[A-Za-z{biaodian}]+$", s) is not None
 
 @dataclass
 class DataCollatorSpeechSeq2SeqWithPadding:
@@ -140,7 +161,20 @@ class DataCollatorSpeechSeq2SeqWithPadding:
 
         # replace padding with -100 to ignore loss correctly
         labels = labels_batch["input_ids"].masked_fill(labels_batch.attention_mask.ne(1), -100)
-
+        vocab_size=51865
+        input_ids=labels
+        if torch.max(input_ids) > vocab_size:
+            print('input_ids bigger than vocab')
+            print(torch.max(input_ids))
+            print(f'input_ids:{input_ids}')
+            print(f'input_ids shape:{input_ids.shape}')
+            # 检查 input_ids 中超过词表大小的元素
+            input_ids = input_ids.reshape(-1)
+            exceed_indices = torch.where(input_ids >= vocab_size)
+            exceed_sequences = input_ids[exceed_indices]
+            print(f"超过词表大小的input_ids:{exceed_sequences}")
+            exceed_count = (input_ids > vocab_size).sum().item()
+            print(f"超过词表大小的元素数量: {exceed_count},占比:{exceed_count / input_ids.numel()}")
         # if bos token is appended in previous tokenization step,
         # cut bos token here as it's append later anyways
         if (labels[:, 0] == self.processor.tokenizer.bos_token_id).all().cpu().item():

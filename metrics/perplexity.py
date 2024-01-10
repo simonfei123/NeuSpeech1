@@ -1,11 +1,16 @@
-from torchmetrics.text import WordErrorRate
-import evaluate
-import datasets
+import lmppl
 
-wer = WordErrorRate()
+import datasets
+import numpy as np
+import evaluate
+
+scorer = lmppl.LM('gpt2')
+
+
 def compute_metrics(preds, labels):
-    scores = wer(preds, labels)
-    scores={'wer':scores.item()}
+    scores_p = scorer.get_perplexity(preds)
+    scores_l = scorer.get_perplexity(labels)
+    scores={'ppl_preds':np.mean(scores_p),'ppl_labels':np.mean(scores_l)}
     return scores
 
 

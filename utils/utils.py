@@ -14,10 +14,9 @@ def preprocess_eeg_data(data,threshold = 10):
     # 1. Baseline correction
     mean_baseline = data[:,:500].mean(axis=1)
     data = data - mean_baseline[:,None]
-
     # 2. Robust scaling
     scaler = RobustScaler()
-    data = scaler.fit_transform(data)
+    data = scaler.fit_transform(data.T).T
 
     # 3. Clipping outliers
 

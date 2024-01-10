@@ -1,4 +1,5 @@
 from moviepy.editor import VideoFileClip
+import sys
 import soundfile as sf
 import mne
 from mne.preprocessing import ICA, create_ecg_epochs, create_eog_epochs

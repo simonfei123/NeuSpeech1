@@ -6,8 +6,32 @@ import os
 
 IGNORE_TOKEN_ID = LabelSmoother.ignore_index
 
+def projection_module(config_name='',**kwargs):
+    if config_name=='base':
+        d_model = kwargs['d_model']
+        conv1 = nn.Sequential(
+            nn.Conv1d(kwargs['meg_ch'], d_model, kernel_size=3, padding=1),
+            nn.GELU(),
+            nn.Conv1d(d_model, d_model, kernel_size=3, stride=2, padding=1),
+        )
+        conv1.stride = (2,)
+    elif config_name=='base+bigKernel':
+        d_model = kwargs['d_model']
+        conv1 = nn.Sequential(
+            nn.Conv1d(kwargs['meg_ch'], d_model, kernel_size=7, padding=3),
+            nn.GELU(),
+            nn.Conv1d(d_model, d_model, kernel_size=7, stride=2, padding=3),
+        )
+        conv1.stride = (2,)
+    else:
+        raise NotImplementedError
+    return conv1
 
 def load_from_checkpoint(resume_from_checkpoint, model=None):
+    pass
+
+
+def save_model(self, output_dir = None, _internal_call: bool = False):
     pass
 
 

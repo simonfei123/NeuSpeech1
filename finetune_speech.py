@@ -37,13 +37,11 @@ add_arg("modal", type=str, default='speech',  help="输入的模态")
 add_arg("sampling_rate", type=int, default=200,  help="输入信号期望采样率")
 add_arg("orig_sample_rate", type=int, default=200,  help="输入信号采样率")
 add_arg("eeg_ch", type=int, default=224,  help="输入信号通道数")
-add_arg("lora_eeg_ch", type=int, default=None,  help="lora模型的输入信号通道数")
 add_arg("min_audio_len", type=float, default=0.5,   help="最小的音频长度，单位秒")
 add_arg("max_audio_len", type=float, default=30,    help="最大的音频长度，单位秒")
 add_arg("use_adalora",   type=bool,  default=True,  help="是否使用AdaLora而不是Lora")
 add_arg("fp16",          type=bool,  default=False,  help="是否使用fp16训练模型")
 add_arg("use_8bit",      type=bool,  default=False, help="是否将模型量化为8位")
-add_arg("filter_dataset",      type=bool,  default=False, help="是否过滤数据集")
 add_arg("timestamps",    type=bool,  default=True, help="训练时是否使用时间戳数据")
 add_arg("local_files_only", type=bool, default=True, help="是否只在本地加载模型，不尝试下载")
 add_arg("num_train_epochs", type=int, default=30,      help="训练的轮数")
@@ -56,7 +54,6 @@ add_arg("per_device_eval_batch_size",  type=int, default=2,    help="评估的ba
 add_arg("gradient_accumulation_steps", type=int, default=1,    help="梯度累积步数")
 add_arg("device", type=str, default='auto',    help="device")
 add_arg("config_name", type=str, default='base',    help="conv1 module")
-add_arg("random_initialize_whisper", type=bool, default=False,    help="随机初始化whisper")
 args = parser.parse_args()
 print_arguments(args)
 
@@ -78,7 +75,6 @@ train_dataset = CustomDataset(
     sample_rate=args.sampling_rate,
     orig_sample_rate=args.orig_sample_rate,
     language=args.language,
-    filter_dataset=args.filter_dataset,
     timestamps=args.timestamps,
     min_duration=args.min_audio_len,
     max_duration=args.max_audio_len,
@@ -92,7 +88,6 @@ test_dataset = CustomDataset(
     sample_rate=args.sampling_rate,
     orig_sample_rate=args.orig_sample_rate,
     language=args.language,
-    filter_dataset=args.filter_dataset,
     timestamps=args.timestamps,
     min_duration=args.min_audio_len,
     max_duration=args.max_audio_len)
@@ -121,41 +116,26 @@ model=WhisperForConditionalGeneration.from_pretrained(args.base_model,
                                                     device_map=device_map,
                                                     local_files_only=args.local_files_only,
                                                         )
-print(f'model device {model.device}')
-eeg_ch=args.eeg_ch
-if args.lora_eeg_ch is not None:
-    eeg_ch=args.lora_eeg_ch
-
-device=model.device
-kwargs={
-    'meg_ch':eeg_ch,
-    'd_model':model.model.encoder.conv2.in_channels,
-}
-
-conv1=projection_module(config_name='base',**kwargs)
-
-
-# conv1 = nn.Conv1d(meg_ch, d_model, kernel_size=3, padding=1)
-conv1 = conv1.to(device)
-model.model.encoder.set_input_embeddings(conv1)
+# print(f'model device {model.device}')
+# device=model.device
+# meg_ch = args.eeg_ch
+# d_model = model.model.encoder.conv2.in_channels
+# kwargs={
+#     'meg_ch':args.eeg_ch,
+#     'd_model':model.model.encoder.conv2.in_channels,
+# }
+# conv1=projection_module(config_name='base',**kwargs)
+#
+#
+# # conv1 = nn.Conv1d(meg_ch, d_model, kernel_size=3, padding=1)
+# conv1 = conv1.to(device)
+# model.model.encoder.set_input_embeddings(conv1)
 # model=model.to(device)
 if args.lora_model is not None:
-    # 之前的加载模型是把模型变成要加载的模型的形状，然后再加载参数。
-    # 现在是变成要训练的模型。
     model = PeftModel.from_pretrained(model, args.lora_model, local_files_only=args.local_files_only)
     model = model.merge_and_unload()
-    if args.lora_eeg_ch!=args.eeg_ch:
-        kwargs={
-            'meg_ch':args.eeg_ch,
-            'd_model':model.model.encoder.conv2.in_channels,
-        }
 
-        conv1=projection_module(config_name='base',**kwargs)
-        conv1 = conv1.to(device)
-        model.model.encoder.set_input_embeddings(conv1)
-if args.random_initialize_whisper:
-    model.post_init()
-    print('模型已被初始化')
+
 # model.save_pretrained(save_directory=os.path.join(args.output_dir, "checkpoint-init"))
 model.config.forced_decoder_ids = None
 model.config.suppress_tokens = []
@@ -225,7 +205,7 @@ training_args = \
                              num_train_epochs=args.num_train_epochs,  # 微调训练轮数
                              save_strategy="steps",  # 指定按照步数保存检查点
                              evaluation_strategy="steps",  # 指定按照步数评估模型
-                             load_best_model_at_end=False,  # 指定是否在结束时加载最优模型
+                             load_best_model_at_end=True,  # 指定是否在结束时加载最优模型
                              fp16=args.fp16,  # 是否使用半精度训练
                              report_to=["tensorboard"],  # 指定使用tensorboard保存log
                              save_steps=args.save_steps,  # 指定保存检查点的步数
@@ -269,28 +249,10 @@ trainer._load_from_checkpoint = load_from_checkpoint
 # 开始训练
 # trainer.save_model(output_dir=os.path.join(output_dir, "checkpoint-init"))
 # trainer.train(resume_from_checkpoint=args.resume_from_checkpoint)
-# 训练荷兰语总是因为不知名的原因被终止。我现在要让他有10次接着跑的机会
 resume_from_checkpoint=args.resume_from_checkpoint
 # resume_from_checkpoint_dir=os.path.dirname(resume_from_checkpoint)
 trainer.train(resume_from_checkpoint=args.resume_from_checkpoint)
-# if args.device=='cpu':
-#     trainer.train(resume_from_checkpoint=args.resume_from_checkpoint)
-# else:
-#     for i in range(10):
-#         try:
-#             # 搜索最新的cp
-#             # 如果输出的模型已经保存了，就把那里当做resume_from_checkpoint
-#             if len(os.listdir(output_dir))>0:
-#                 resume_from_checkpoint=output_dir
-#             resume_from_checkpoints=os.listdir(resume_from_checkpoint)
-#             resume_from_checkpoint = max(resume_from_checkpoints, key=lambda x: int(os.path.basename(x).split('-')[-1]))
-#             resume_from_checkpoint=os.path.join(resume_from_checkpoint_dir,resume_from_checkpoint)
-#             # resume_from_checkpoints_number=[eval(os.path.basename(x).split('-')[-1]) for x in resume_from_checkpoints]
-#             trainer.train(resume_from_checkpoint=resume_from_checkpoint)
-#         except Exception as e:
-#             print(e)
 trainer.save_model(os.path.join(output_dir, "checkpoint-final"))
 # 保存最后的模型
-# trainer.save_state()
 # if training_args.local_rank == 0 or training_args.local_rank == -1:
 #     model.save_pretrained(os.path.join(output_dir, "checkpoint-final"))

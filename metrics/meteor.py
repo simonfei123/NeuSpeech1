@@ -1,11 +1,14 @@
-from torchmetrics.text import WordErrorRate
+from nltk.translate.meteor_score import meteor_score
 import evaluate
 import datasets
 
-wer = WordErrorRate()
 def compute_metrics(preds, labels):
-    scores = wer(preds, labels)
-    scores={'wer':scores.item()}
+
+    labels=[[label] for i,label in enumerate(labels)]
+
+    scores = meteor_score(labels,preds)
+    print(scores)
+    scores={'meteor':scores}
     return scores
 
 

@@ -1,11 +1,16 @@
-from torchmetrics.text import WordErrorRate
+from torchmetrics.text import WordInfoPreserved
+
 import evaluate
 import datasets
 
-wer = WordErrorRate()
+wer = WordInfoPreserved()
+
+
 def compute_metrics(preds, labels):
+
+
     scores = wer(preds, labels)
-    scores={'wer':scores.item()}
+    scores={'wip':scores.item()}
     return scores
 
 
