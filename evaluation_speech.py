@@ -125,8 +125,8 @@ with open(output_file, "w") as f:
                 generated_tokens = (
                     model.generate(
                         input_features=input_features,
-                        do_sample=True,
-                        top_p=0.95,
+                        do_sample=False,
+                        # top_p=0.95,
                         repetition_penalty=5.0,
                         # condition_on_previous_text=0,
                         decoder_input_ids=batch["labels"][:, :4].cuda(),

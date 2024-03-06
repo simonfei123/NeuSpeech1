@@ -19,6 +19,22 @@ def makedirs(path):
     return path
 
 
+import soundfile as sf
+import os
+import json
+import whisper
+import tqdm
+import librosa
+
+model = whisper.load_model('large')
+
+
+def makedirs(output_dir):
+    os.makedirs(os.path.dirname(output_dir), exist_ok=True)
+    return output_dir
+
+
+
 # 先把语音转录文件都写了。
 # 然后在轮subject，取eeg。
 def get_speed_transcription(path='musicx1_transcribe rectified.json'):
@@ -130,10 +146,13 @@ def get_data_from_subject(subj):
             lines.append(line)
     return lines
 
+
 def write_jsonlines(file_path, json_dicts):
     with jsonlines.open(file_path, mode='w') as writer:
         for json_dict in json_dicts:
             writer.write(json_dict)
+
+
 def get_all_lines():
     subj_list=[i+1 for i in range(20)]
     if use_multiprocessing:
@@ -152,6 +171,8 @@ def get_all_lines():
     # print(all_lines1)
     write_jsonlines(
         os.path.join(root_path,output_data_dir, 'all_info.jsonl'), all_lines1)
+
+
 def read_jsonlines(file_path):
     json_dicts = []
     with jsonlines.open(file_path, mode='r') as reader:

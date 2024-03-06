@@ -1,13 +1,12 @@
-from nltk.translate.meteor_score import meteor_score
+import numpy as np
+from nltk.translate.meteor_score import single_meteor_score
 import evaluate
 import datasets
 
+
 def compute_metrics(preds, labels):
-
-    labels=[[label] for i,label in enumerate(labels)]
-
-    scores = meteor_score(labels,preds)
-    print(scores)
+    scores = [single_meteor_score(label.split(),pred.split()) for pred,label in zip(preds,labels)]
+    scores=np.mean(scores)
     scores={'meteor':scores}
     return scores
 

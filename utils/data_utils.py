@@ -12,6 +12,10 @@ import matplotlib.pyplot as plt
 import string
 
 
+def get_part_of_dataset(dataset,ratio):
+    num_samples=int(ratio*len(dataset))
+    return dataset[:num_samples]
+
 def generate_random_string(length):
     # 获取所有可能的字符集合
     all_chars = string.ascii_letters + string.digits

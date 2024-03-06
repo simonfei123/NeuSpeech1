@@ -2,6 +2,7 @@ from torchmetrics.text import BLEUScore
 import datasets
 import evaluate
 
+
 def compute_metrics(preds, labels):
     labels=[[label] for i,label in enumerate(labels)]
     result={}

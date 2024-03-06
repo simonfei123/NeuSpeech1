@@ -1,0 +1,13 @@
+{
+    "noise": {
+      "prob": 0.0,
+      "min_snr_dB": 20,
+      "max_snr_dB": 50
+    },
+  "shift": {
+    "prob": 0.0
+  },
+  "taylor": {
+    "prob": 1.0
+  }
+}

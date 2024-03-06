@@ -294,7 +294,7 @@ arguments, `--lora_model` is the path of the Lora model saved after training, wh
 second `--output_dir` is the saved directory of the merged model.
 
 ```shell
-python merge_lora.py --lora_model=output/whisper-tiny/checkpoint-best/ --output_dir=models/
+python merge_lora.sh.py --lora_model=output/whisper-tiny/checkpoint-best/ --output_dir=models/
 ```
 
 <a name='评估模型'></a>

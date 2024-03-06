@@ -1,0 +1,18 @@
+{
+    "noise": {
+      "prob": 1.0,
+      "min_snr_dB": 0,
+      "max_snr_dB": 0.01
+    },
+  "shift": {
+    "prob": 1.0
+  },
+  "mask": {
+    "prob": 1,
+    "kwargs": {
+      "unit":[1, 40],
+      "mask_prob":0.25,
+      "random_type":1
+    }
+  }
+}

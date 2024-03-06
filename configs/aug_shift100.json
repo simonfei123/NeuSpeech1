@@ -1,0 +1,10 @@
+{
+    "noise": {
+      "prob": 0.0,
+      "min_snr_dB": 15,
+      "max_snr_dB": 15.01
+    },
+  "shift": {
+    "prob": 1
+  }
+}

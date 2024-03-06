@@ -15,14 +15,9 @@ def projection_module(config_name='',**kwargs):
             nn.Conv1d(d_model, d_model, kernel_size=3, stride=2, padding=1),
         )
         conv1.stride = (2,)
-    elif config_name=='base+bigKernel':
+    elif config_name=='replace':
         d_model = kwargs['d_model']
-        conv1 = nn.Sequential(
-            nn.Conv1d(kwargs['meg_ch'], d_model, kernel_size=7, padding=3),
-            nn.GELU(),
-            nn.Conv1d(d_model, d_model, kernel_size=7, stride=2, padding=3),
-        )
-        conv1.stride = (2,)
+        conv1 = nn.Conv1d(kwargs['meg_ch'], d_model, kernel_size=3, stride=2, padding=1)
     else:
         raise NotImplementedError
     return conv1

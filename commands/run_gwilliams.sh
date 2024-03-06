@@ -147,6 +147,51 @@ python finetune.py --per_device_train_batch_size=64\
  --base_model='openai/whisper-base' --augment_config_path='configs/augmentation1.json'\
  --local_files_only=False --language='English' --device='cuda'
 
+python debug_lora.py --per_device_train_batch_size=64\
+ --per_device_eval_batch_size=64 --output_dir='output_models/29-gwilliams2023-split2-no_aug'\
+  --eval_steps=1000 --save_steps=1000\
+  --learning_rate=1e-3 --fp16=True\
+ --num_train_epochs=500 --warmup_steps=500 --max_audio_len=30\
+ --use_8bit=False --num_workers=16 --modal='eeg' --eeg_ch=208 --sampling_rate=200 --orig_sample_rate=200\
+ --train_data='/hpc2hdd/home/yyang937/datasets/gwilliams2023/preprocess5/split2/train.jsonl'\
+ --test_data='/hpc2hdd/home/yyang937/datasets/gwilliams2023/preprocess5/split2/val.jsonl'\
+ --base_model='openai/whisper-base' --augment_config_path='configs/augmentation1.json'\
+ --local_files_only=False --language='English' --device='cuda' --fine_tune_layers=0
+
+# train34
+python finetune.py --per_device_train_batch_size=4\
+ --per_device_eval_batch_size=4 --output_dir='output_models/34-gwilliams2023-split1-no_aug'\
+  --eval_steps=1000 --save_steps=1000\
+  --learning_rate=1e-3 --fp16=True\
+ --num_train_epochs=500 --warmup_steps=500 --max_audio_len=30\
+ --use_8bit=False --num_workers=4 --modal='eeg' --eeg_ch=208 --sampling_rate=200 --orig_sample_rate=200\
+ --train_data='/hpc2hdd/home/yyang937/datasets/gwilliams2023/preprocess5/split1/train.jsonl'\
+ --test_data='/hpc2hdd/home/yyang937/datasets/gwilliams2023/preprocess5/split1/val.jsonl'\
+ --base_model='openai/whisper-large' --augment_config_path='configs/augmentation1.json'\
+ --local_files_only=False --language='English' --device='cuda'
+
+# train35
+CUDA_VISIBLE_DEVICES=1 HF_ENDPOINT=https://hf-mirror.com python finetune.py --per_device_train_batch_size=8\
+ --per_device_eval_batch_size=8 --output_dir='output_models/35-gwilliams2023-split1-no_aug'\
+  --eval_steps=1000 --save_steps=1000\
+  --learning_rate=1e-3 --fp16=True\
+ --num_train_epochs=500 --warmup_steps=500 --max_audio_len=30\
+ --use_8bit=False --num_workers=8 --modal='eeg' --eeg_ch=208 --sampling_rate=200 --orig_sample_rate=200\
+ --train_data='/hpc2hdd/home/yyang937/datasets/gwilliams2023/preprocess5/split1/train.jsonl'\
+ --test_data='/hpc2hdd/home/yyang937/datasets/gwilliams2023/preprocess5/split1/val.jsonl'\
+ --base_model='openai/whisper-medium' --augment_config_path='configs/augmentation1.json'\
+ --local_files_only=False --language='English' --device='cuda'
+
+HF_ENDPOINT=https://hf-mirror.com python finetune.py --per_device_train_batch_size=16\
+ --per_device_eval_batch_size=16 --output_dir='output_models/36-gwilliams2023-split1-no_aug'\
+  --eval_steps=1000 --save_steps=1000\
+  --learning_rate=1e-3 --fp16=True\
+ --num_train_epochs=500 --warmup_steps=500 --max_audio_len=30\
+ --use_8bit=False --num_workers=8 --modal='eeg' --eeg_ch=208 --sampling_rate=200 --orig_sample_rate=200\
+ --train_data='/hpc2hdd/home/yyang937/datasets/gwilliams2023/preprocess5/split1/train.jsonl'\
+ --test_data='/hpc2hdd/home/yyang937/datasets/gwilliams2023/preprocess5/split1/val.jsonl'\
+ --base_model='openai/whisper-small' --augment_config_path='configs/augmentation1.json'\
+ --local_files_only=False --language='English' --device='cuda'
 
 python finetune.py --per_device_train_batch_size=64\
  --per_device_eval_batch_size=64 --output_dir='output_models/10-gwilliams2023-split2'\
@@ -236,6 +281,186 @@ python finetune.py --per_device_train_batch_size=64\
  --random_initialize_whisper=True
 
 
+python finetune.py --per_device_train_batch_size=64\
+ --per_device_eval_batch_size=64 --output_dir='output_models/37-gwilliams2023-split3-no_aug'\
+  --eval_steps=1000 --save_steps=1000\
+  --learning_rate=1e-3 --fp16=True\
+ --num_train_epochs=500 --warmup_steps=500 --max_audio_len=30\
+ --use_8bit=False --num_workers=16 --modal='eeg' --eeg_ch=208 --sampling_rate=200 --orig_sample_rate=200\
+ --train_data='/hpc2hdd/home/yyang937/datasets/gwilliams2023/preprocess5/split3/lw1/train.jsonl'\
+ --test_data='/hpc2hdd/home/yyang937/datasets/gwilliams2023/preprocess5/split3/lw1/val.jsonl'\
+ --base_model='openai/whisper-base' --augment_config_path='configs/augmentation1.json'\
+ --local_files_only=False --language='English' --device='cuda'
+
+
+# cable_spool_fort lw1
+python finetune.py --per_device_train_batch_size=64\
+ --per_device_eval_batch_size=64 --output_dir='output_models/38-gwilliams2023-split3-no_aug'\
+  --eval_steps=1000 --save_steps=1000\
+  --learning_rate=1e-3 --fp16=True\
+ --num_train_epochs=500 --warmup_steps=500 --max_audio_len=30\
+ --use_8bit=False --num_workers=16 --modal='eeg' --eeg_ch=208 --sampling_rate=200 --orig_sample_rate=200\
+ --train_data='/hpc2hdd/home/yyang937/datasets/gwilliams2023/preprocess5/split3/cable_spool_fort/lw1/train.jsonl'\
+ --test_data='/hpc2hdd/home/yyang937/datasets/gwilliams2023/preprocess5/split3/cable_spool_fort/lw1/val.jsonl'\
+ --base_model='openai/whisper-base' --augment_config_path='configs/augmentation1.json'\
+ --local_files_only=False --language='English' --device='cuda'
+
+# split4
+python finetune.py --per_device_train_batch_size=64\
+ --per_device_eval_batch_size=64 --output_dir='output_models/39-gwilliams2023-split3-no_aug'\
+  --eval_steps=1000 --save_steps=1000\
+  --learning_rate=1e-3 --fp16=True\
+ --num_train_epochs=500 --warmup_steps=500 --max_audio_len=30\
+ --use_8bit=False --num_workers=16 --modal='eeg' --eeg_ch=208 --sampling_rate=200 --orig_sample_rate=200\
+ --train_data='/hpc2hdd/home/yyang937/datasets/gwilliams2023/preprocess5/split4/train.jsonl'\
+ --test_data='/hpc2hdd/home/yyang937/datasets/gwilliams2023/preprocess5/split4/val.jsonl'\
+ --base_model='openai/whisper-base' --augment_config_path='configs/augmentation1.json'\
+ --local_files_only=False --language='English' --device='cuda'
+
+python finetune.py --per_device_train_batch_size=64\
+ --per_device_eval_batch_size=64 --output_dir='output_models/40-gwilliams2023-split3-no_aug'\
+  --eval_steps=1000 --save_steps=1000\
+  --learning_rate=1e-3 --fp16=True\
+ --num_train_epochs=500 --warmup_steps=500 --max_audio_len=30\
+ --use_8bit=False --num_workers=16 --modal='eeg' --eeg_ch=208 --sampling_rate=200 --orig_sample_rate=200\
+ --train_data='/hpc2hdd/home/yyang937/datasets/gwilliams2023/preprocess5/split4/train.jsonl'\
+ --test_data='/hpc2hdd/home/yyang937/datasets/gwilliams2023/preprocess5/split4/val.jsonl'\
+ --base_model='openai/whisper-base' --augment_config_path='configs/aug_shift100.json'\
+ --local_files_only=False --language='English' --device='cuda'
+
+python finetune.py --per_device_train_batch_size=64\
+ --per_device_eval_batch_size=64 --output_dir='output_models/41-gwilliams2023-split4'\
+  --eval_steps=1000 --save_steps=1000\
+  --learning_rate=1e-3 --fp16=True\
+ --num_train_epochs=500 --warmup_steps=500 --max_audio_len=30\
+ --use_8bit=False --num_workers=16 --modal='eeg' --eeg_ch=208 --sampling_rate=200 --orig_sample_rate=200\
+ --train_data='/hpc2hdd/home/yyang937/datasets/gwilliams2023/preprocess5/split4/train.jsonl'\
+ --test_data='/hpc2hdd/home/yyang937/datasets/gwilliams2023/preprocess5/split4/val.jsonl'\
+ --base_model='openai/whisper-base' --augment_config_path='configs/aug_mask_shift_noise.json'\
+ --local_files_only=False --language='English' --device='cuda'
+
+python finetune.py --per_device_train_batch_size=64\
+ --per_device_eval_batch_size=64 --output_dir='output_models/42-gwilliams2023-split4'\
+  --eval_steps=1000 --save_steps=1000\
+  --learning_rate=1e-3 --fp16=True\
+ --num_train_epochs=500 --warmup_steps=500 --max_audio_len=30\
+ --use_8bit=False --num_workers=16 --modal='eeg' --eeg_ch=208 --sampling_rate=200 --orig_sample_rate=200\
+ --train_data='/hpc2hdd/home/yyang937/datasets/gwilliams2023/preprocess5/split4/train.jsonl'\
+ --test_data='/hpc2hdd/home/yyang937/datasets/gwilliams2023/preprocess5/split4/val.jsonl'\
+ --base_model='openai/whisper-tiny' --augment_config_path='configs/aug_shift100.json'\
+ --local_files_only=False --language='English' --device='cuda'
+
+python finetune.py --per_device_train_batch_size=64\
+ --per_device_eval_batch_size=64 --output_dir='output_models/43-gwilliams2023-split4'\
+  --eval_steps=1000 --save_steps=1000\
+  --learning_rate=1e-3 --fp16=True\
+ --num_train_epochs=500 --warmup_steps=500 --max_audio_len=30\
+ --use_8bit=False --num_workers=16 --modal='eeg' --eeg_ch=208 --sampling_rate=200 --orig_sample_rate=200\
+ --train_data='/hpc2hdd/home/yyang937/datasets/gwilliams2023/preprocess5/split4/train.jsonl'\
+ --test_data='/hpc2hdd/home/yyang937/datasets/gwilliams2023/preprocess5/split4/val.jsonl'\
+ --base_model='openai/whisper-base' --augment_config_path='configs/aug_taylor.json'\
+ --local_files_only=False --language='English' --device='cuda' --timestamps=False
+
+python finetune.py --per_device_train_batch_size=64\
+ --per_device_eval_batch_size=64 --output_dir='output_models/44-gwilliams2023-split4'\
+  --eval_steps=1000 --save_steps=1000\
+  --learning_rate=1e-3 --fp16=True\
+ --num_train_epochs=500 --warmup_steps=500 --max_audio_len=30\
+ --use_8bit=False --num_workers=32 --modal='eeg' --eeg_ch=208 --sampling_rate=200 --orig_sample_rate=200\
+ --train_data='/hpc2hdd/home/yyang937/datasets/gwilliams2023/preprocess5/split4/train.jsonl'\
+ --test_data='/hpc2hdd/home/yyang937/datasets/gwilliams2023/preprocess5/split4/val.jsonl'\
+ --base_model='openai/whisper-base' --augment_config_path='configs/aug_taylor.json'\
+ --local_files_only=False --language='English' --device='cuda'\
+  --timestamps=False --combine_sentences=True
+
+
+python finetune.py --per_device_train_batch_size=64\
+ --per_device_eval_batch_size=64 --output_dir='output_models/45-gwilliams2023-split4'\
+  --eval_steps=1000 --save_steps=1000\
+  --learning_rate=1e-3 --fp16=True\
+ --num_train_epochs=500 --warmup_steps=500 --max_audio_len=30\
+ --use_8bit=False --num_workers=32 --modal='eeg' --eeg_ch=208 --sampling_rate=200 --orig_sample_rate=200\
+ --train_data='/hpc2hdd/home/yyang937/datasets/gwilliams2023/preprocess5/split4/train.jsonl'\
+ --test_data='/hpc2hdd/home/yyang937/datasets/gwilliams2023/preprocess5/split4/val.jsonl'\
+ --base_model='openai/whisper-tiny' --augment_config_path='configs/aug_taylor.json'\
+ --local_files_only=False --language='English' --device='cuda'\
+  --timestamps=False --combine_sentences=True
+
+python finetune.py --per_device_train_batch_size=64\
+ --per_device_eval_batch_size=64 --output_dir='output_models/46-gwilliams2023-split4'\
+  --eval_steps=1000 --save_steps=1000\
+  --learning_rate=1e-3 --fp16=True\
+ --num_train_epochs=500 --warmup_steps=500 --max_audio_len=30\
+ --use_8bit=False --num_workers=32 --modal='eeg' --eeg_ch=208 --sampling_rate=200 --orig_sample_rate=200\
+ --train_data='/hpc2hdd/home/yyang937/datasets/gwilliams2023/preprocess5/split4/train.jsonl'\
+ --test_data='/hpc2hdd/home/yyang937/datasets/gwilliams2023/preprocess5/split4/val.jsonl'\
+ --base_model='openai/whisper-base' --augment_config_path='configs/augmentation1.json'\
+ --local_files_only=False --language='English' --device='cuda'\
+  --timestamps=False --split_sentences=True
+
+
+python finetune.py --per_device_train_batch_size=64\
+ --per_device_eval_batch_size=64 --output_dir='output_models/47-gwilliams2023-split4'\
+  --eval_steps=1000 --save_steps=1000\
+  --learning_rate=1e-3 --fp16=True\
+ --num_train_epochs=500 --warmup_steps=500 --max_audio_len=30\
+ --use_8bit=False --num_workers=32 --modal='eeg' --eeg_ch=208 --sampling_rate=200 --orig_sample_rate=200\
+ --train_data='/hpc2hdd/home/yyang937/datasets/gwilliams2023/preprocess5/split4/train.jsonl'\
+ --test_data='/hpc2hdd/home/yyang937/datasets/gwilliams2023/preprocess5/split4/val.jsonl'\
+ --base_model='/hpc2hdd/home/yyang937/brain2text/whisper/output_models/28-schoffelen/whisper-base/checkpoint-14000/full_model'\
+  --augment_config_path='configs/augmentation1.json'\
+ --local_files_only=False --language='English' --device='cuda'\
+  --timestamps=False --split_sentences=True
+
+python finetune.py --per_device_train_batch_size=64\
+ --per_device_eval_batch_size=64 --output_dir='output_models/48-gwilliams2023-split4'\
+  --eval_steps=1000 --save_steps=1000\
+  --learning_rate=1e-3 --fp16=True\
+ --num_train_epochs=500 --warmup_steps=500 --max_audio_len=30\
+ --use_8bit=False --num_workers=32 --modal='eeg' --eeg_ch=208 --sampling_rate=200 --orig_sample_rate=200\
+ --train_data='/hpc2hdd/home/yyang937/datasets/gwilliams2023/preprocess5/split3/lw1/train.jsonl'\
+ --test_data='/hpc2hdd/home/yyang937/datasets/gwilliams2023/preprocess5/split3/lw1/val.jsonl'\
+ --base_model='openai/whisper-base'\
+  --augment_config_path='configs/augmentation1.json'\
+ --local_files_only=False --language='English' --device='cuda'\
+  --timestamps=False --split_sentences=True
+
+python finetune.py --per_device_train_batch_size=64\
+ --per_device_eval_batch_size=64 --output_dir='output_models/49-gwilliams2023-split4'\
+  --eval_steps=1000 --save_steps=1000\
+  --learning_rate=1e-3 --fp16=True\
+ --num_train_epochs=500 --warmup_steps=500 --max_audio_len=30\
+ --use_8bit=False --num_workers=32 --modal='eeg' --eeg_ch=208 --sampling_rate=200 --orig_sample_rate=200\
+ --train_data='/hpc2hdd/home/yyang937/datasets/gwilliams2023/preprocess5/split4/train.jsonl'\
+ --test_data='/hpc2hdd/home/yyang937/datasets/gwilliams2023/preprocess5/split4/val.jsonl'\
+ --base_model='/hpc2hdd/home/yyang937/brain2text/whisper/output_models/28-schoffelen/whisper-base/checkpoint-14000/full_model'\
+  --augment_config_path='configs/augmentation1.json'\
+ --local_files_only=False --language='English' --device='cuda'\
+  --timestamps=False
+
+
+python finetune.py --per_device_train_batch_size=64\
+ --per_device_eval_batch_size=64 --output_dir='output_models/50-gwilliams2023-split4'\
+  --eval_steps=1000 --save_steps=1000\
+  --learning_rate=1e-3 --fp16=True\
+ --num_train_epochs=500 --warmup_steps=500 --max_audio_len=30\
+ --use_8bit=False --num_workers=16 --modal='eeg' --eeg_ch=208 --sampling_rate=200 --orig_sample_rate=200\
+ --train_data='/hpc2hdd/home/yyang937/datasets/gwilliams2023/preprocess5/split4/mix_train_val/train.jsonl'\
+ --test_data='/hpc2hdd/home/yyang937/datasets/gwilliams2023/preprocess5/split4/mix_train_val/val.jsonl'\
+ --base_model='openai/whisper-base' --augment_config_path='configs/augmentation1.json'\
+ --local_files_only=False --language='English' --device='cuda' --timestamps=False
+
+python finetune.py --per_device_train_batch_size=64\
+ --per_device_eval_batch_size=64 --output_dir='output_models/51-gwilliams2023-split4'\
+  --eval_steps=1000 --save_steps=1000\
+  --learning_rate=1e-3 --fp16=True\
+ --num_train_epochs=500 --warmup_steps=500 --max_audio_len=30\
+ --use_8bit=False --num_workers=16 --modal='eeg' --eeg_ch=208 --sampling_rate=200 --orig_sample_rate=200\
+ --train_data='/hpc2hdd/home/yyang937/datasets/gwilliams2023/preprocess5/split4/mix_train_val/train.jsonl'\
+ --test_data='/hpc2hdd/home/yyang937/datasets/gwilliams2023/preprocess5/split4/mix_train_val/val.jsonl'\
+ --base_model='openai/whisper-base' --augment_config_path='configs/augmentation1.json'\
+ --local_files_only=False --language='English' --device='cuda' --timestamps=False --split_sentences=True
+
 # eval23
 python evaluation.py\
  --model_path='openai/whisper-base'\
@@ -296,6 +521,23 @@ python evaluation.py\
  --test_data='/hpc2hdd/home/yyang937/datasets/gwilliams2023/preprocess5/split2/test.jsonl'\
  --modal='eeg' --sampling_rate=200 --eeg_ch=224 --batch_size=128 --num_workers=16 --language='English'\
  --timestamps=False --local_files_only=True
+
+# eval29
+CUDA_VISIBLE_DEVICES=1 python evaluation.py\
+ --model_path='openai/whisper-base'\
+ --lora_model="output_models/29-gwilliams2023-split2-no_aug/whisper-base/checkpoint-48000"\
+ --test_data='/hpc2hdd/home/yyang937/datasets/gwilliams2023/preprocess5/split2/test.jsonl'\
+ --modal='eeg' --sampling_rate=200 --eeg_ch=208 --batch_size=128 --num_workers=16 --language='English'\
+ --timestamps=False --local_files_only=True
+
+# eval31
+CUDA_VISIBLE_DEVICES=1 python evaluation.py\
+ --model_path='/hpc2hdd/home/yyang937/brain2text/whisper/output_models/28-schoffelen/whisper-base/checkpoint-14000/full_model'\
+ --lora_model="output_models/31-gwilliams2023-split1-no_aug-pretrain28/whisper-base/checkpoint-44000"\
+ --test_data='/hpc2hdd/home/yyang937/datasets/gwilliams2023/preprocess5/split1/test.jsonl'\
+ --modal='eeg' --sampling_rate=200 --eeg_ch=208 --batch_size=128 --num_workers=16 --language='English'\
+ --timestamps=False --local_files_only=True
+
 
 
 python evaluation.py\

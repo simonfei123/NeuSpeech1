@@ -1,16 +1,17 @@
-from torchmetrics.text.bert import BERTScore
+from bert_score import score
 import datasets
 
 import evaluate
 
-bertscore = BERTScore()
 
 
 def compute_metrics(preds, labels):
-
-
-    scores = bertscore(preds, labels)
-    scores={key:scores[key].mean()*100 for key in scores.keys()}
+    scores = score(preds, labels,lang='en')
+    scores={
+        "bert_p":scores[0].mean()*100,
+        "bert_r":scores[1].mean()*100,
+        "bert_f":scores[2].mean()*100,
+    }
     return scores
 
 

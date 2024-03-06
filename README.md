@@ -280,7 +280,7 @@ accelerate launch finetune.py --base_model=openai/whisper-tiny --output_dir=outp
 
 微调完成之后会有两个模型，第一个是Whisper基础模型，第二个是Lora模型，需要把这两个模型合并之后才能之后的操作。这个程序只需要传递两个参数，`--lora_model`指定的是训练结束后保存的Lora模型路径，其实就是检查点文件夹路径，第二个`--output_dir`是合并后模型的保存目录。
 ```shell
-python merge_lora.py --lora_model=output/whisper-tiny/checkpoint-best/ --output_dir=models/
+python merge_lora.sh.py --lora_model=output/whisper-tiny/checkpoint-best/ --output_dir=models/
 ```
 
 <a name='评估模型'></a>

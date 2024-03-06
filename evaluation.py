@@ -11,12 +11,14 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 import tqdm
 from transformers import WhisperForConditionalGeneration, WhisperProcessor
+from utils.model_utils import projection_module
 from peft import PeftModel
 
 from utils.data_utils import DataCollatorSpeechSeq2SeqWithPadding,generate_random_string, remove_punctuation, to_simple,contains_valid_letters
 from utils.process_str import filter_ascii_text,model_generate,convert_lower_text,list_operation
-from utils.reader import CustomDataset
+from utils.reader import CustomDataset,write_jsonlines,read_jsonlines
 from utils.utils import print_arguments, add_arguments
+from utils.generation_helper import GetSequenceBias
 
 parser = argparse.ArgumentParser(description=__doc__)
 add_arg = functools.partial(add_arguments, argparser=parser)
@@ -41,6 +43,10 @@ add_arg("random_choice",  type=bool,  default=False, help="随机选择标签中
 add_arg("task",       type=str, default="transcribe", choices=['transcribe', 'translate'], help="模型的任务")
 add_arg("random_initialize_whisper", type=bool, default=False,    help="随机初始化whisper")
 add_arg("teacher_forcing", type=bool, default=False,    help="使用teacher forcing")
+add_arg("extra_name", type=str, default=None,    help="result basename里面增加字符")
+add_arg("post_processing", type=bool, default=False,    help="是否使用后处理")
+add_arg("config_name", type=str, default='base',    help="使用的模型")
+add_arg("add_sequence_bias", type=bool, default=False,    help="是否对生成词增强。")
 # add_arg("metric",     type=str, default="fulleval",        choices=['cer', 'wer','fulleval'],              help="评估方式")
 args = parser.parse_args()
 print_arguments(args)
@@ -68,14 +74,12 @@ model = WhisperForConditionalGeneration.from_pretrained(args.model_path,
                                                     local_files_only=args.local_files_only,)
 
 device=model.device
-meg_ch = args.eeg_ch
-d_model = model.model.encoder.conv2.in_channels
-conv1 = nn.Sequential(
-    nn.Conv1d(meg_ch, d_model, kernel_size=3, padding=1),
-    nn.GELU(),
-    nn.Conv1d(d_model, d_model, kernel_size=3, stride=2, padding=1),
-)
-conv1.stride = (2,)
+kwargs={
+    'meg_ch':args.eeg_ch,
+    'd_model':model.model.encoder.conv2.in_channels,
+}
+
+conv1=projection_module(config_name=args.config_name,**kwargs)
 
 # conv1 = nn.Conv1d(meg_ch, d_model, kernel_size=3, padding=1)
 conv1 = conv1.to(device)
@@ -125,7 +129,9 @@ eval_dataloader = DataLoader(test_dataset, batch_size=args.batch_size,
 # 获取评估方法
 metrics = []
 # metric_files = ['bert_score','bleu','mer', 'my_rouge','perplexity', 'wer','word_info_lost','word_info_preserved']
-metric_files = ['bleu','mer', 'my_rouge','wer','word_info_lost','word_info_preserved']
+metric_files = ['bleu','mer', 'my_rouge','wer','word_info_lost','word_info_preserved',
+                'bert_score','meteor'
+                ]
 # Load metrics
 for metric_file in metric_files:
     metric = evaluate.load(f'metrics/{metric_file}.py',
@@ -323,11 +329,24 @@ for metric_file in metric_files:
 #     print(f'num_beams:{num_beams} \n\n')
 if args.random_choice:
     all_labels=[]
-result_basename=f'formal_test_results{"_noise"if args.noise else ""}{"_randomChoice"if args.random_choice else ""}{"_tf" if args.teacher_forcing else ""}'
+result_basename=(f'formal_test_results{"_"+args.extra_name if args.extra_name is not None else ""}'
+                 f'{"no_post_processing" if not args.post_processing else "post_processing"}'
+                 f'{"_noise"if args.noise else ""}{"_randomChoice"if args.random_choice else ""}'
+                 f'{"_tf" if args.teacher_forcing else ""}')
 # 开始评估
 output_file=os.path.join(args.lora_model,f'{result_basename}.txt')
+
+if args.add_sequence_bias:
+    generation_helper=GetSequenceBias(tokenizer_name=args.model_path,
+                                      jsonl_path=args.test_data.replace('test.jsonl','train.jsonl'),
+                                      bias=-1.0,
+                                      extract_type='phrase_word')
+result_preds=[]
+result_labels=[]
 with open(output_file, "w") as f:
     for step, batch in tqdm.tqdm(enumerate(eval_dataloader)):
+        # if step<100:
+        #     continue
         with torch.cuda.amp.autocast():
             with torch.no_grad():
                 if not args.random_choice:
@@ -340,9 +359,26 @@ with open(output_file, "w") as f:
                             generation_kwargs={"decoder_input_ids":decoder_input_ids}
                         else:
                             generation_kwargs={}
+                        if args.add_sequence_bias==True:
+                            sequence_bias=generation_helper.get_bias_for_my_sentences()
+                            sequence_bias_kwargs={"sequence_bias":sequence_bias}
+                            # print(sequence_bias_kwargs)
+                        else:
+                            sequence_bias_kwargs={}
+                        # print(sequence_bias_kwargs,type(args.add_sequence_bias),args.add_sequence_bias==True,args.post_processing)
                         generated_tokens = (
-                            model.generate(input_features,do_sample=False,num_beams=5,repetition_penalty=5.0,
-                                           no_repeat_ngram_size=2,
+                            model.generate(input_features,
+                                           do_sample=False,num_beams=5,
+                                           # do_sample=False,num_beams=20,
+                                           # do_sample=True,num_beams=20,typical_p=0.25,
+                                           # do_sample=True,num_beams=20,top_p=0.25,
+                                           # do_sample=True,num_beams=20,top_p=0.25,
+                                           # do_sample=False,num_beams=5,num_beam_groups=5, # 这个能比随机搞2个点
+                                           # diversity_penalty=1.0,
+
+                                           repetition_penalty=5.0,no_repeat_ngram_size=2,
+                                           **sequence_bias_kwargs,
+
                                            **generation_kwargs
                                            # max_new_tokens=100,
                                            # forced_decoder_ids=forced_decoder_ids
@@ -374,14 +410,20 @@ with open(output_file, "w") as f:
                 if not args.random_choice:
                     decoded_preds = processor.batch_decode(generated_tokens, skip_special_tokens=True)
                 decoded_labels = processor.batch_decode(labels, skip_special_tokens=True)
+                result_preds.extend(decoded_preds)
+                result_labels.extend(decoded_labels)
                 # decoded_preds = processor.tokenizer.batch_decode(generated_tokens, skip_special_tokens=True)
                 # decoded_labels = processor.tokenizer.batch_decode(labels, skip_special_tokens=True)
-                decoded_preds=filter_ascii_text(decoded_preds)
-                decoded_labels=filter_ascii_text(decoded_labels)
-                decoded_preds=convert_lower_text(decoded_preds)
-                decoded_labels=convert_lower_text(decoded_labels)
-                decoded_preds=list_operation(decoded_preds,str.strip)
-                decoded_labels=list_operation(decoded_labels,str.strip)
+                if args.post_processing:
+                    decoded_preds=filter_ascii_text(decoded_preds)
+                    decoded_labels=filter_ascii_text(decoded_labels)
+                    decoded_preds=convert_lower_text(decoded_preds)
+                    decoded_labels=convert_lower_text(decoded_labels)
+                for pred, label in zip(decoded_preds, decoded_labels):
+                    f.write(f"start********************************\n")
+                    f.write(f"Predicted: {pred}\n")
+                    f.write(f"True: {label}\n")
+                    f.write(f"end==================================\n\n")
 
                 if not args.random_choice:
                     print('decoded_preds')
@@ -393,14 +435,13 @@ with open(output_file, "w") as f:
                 if args.random_choice:
                     all_labels.extend(decoded_labels)
 
-                if not args.random_choice:
-                    for pred, label in zip(decoded_preds, decoded_labels):
-                        f.write(f"start********************************\n")
-                        f.write(f"Predicted: {pred}\n")
-                        f.write(f"True: {label}\n")
-                        f.write(f"end==================================\n\n")
-                    for metric in metrics:
-                        metric.add_batch(predictions=decoded_preds, references=decoded_labels)
+if not args.random_choice:
+    # 写入
+    jsonl_file_path=os.path.join(args.lora_model,f'{result_basename}.jsonl')
+    jsonl_file=[{"pred":pred,"label":label} for pred,label in zip(result_preds,result_labels)]
+    write_jsonlines(jsonl_file_path,jsonl_file)
+    for metric in metrics:
+        metric.add_batch(predictions=result_preds, references=result_labels)
 # 计算评估结果
 
 if not args.random_choice:

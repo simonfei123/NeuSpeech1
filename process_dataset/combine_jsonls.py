@@ -1,6 +1,7 @@
 import jsonlines
 import os
 import sys
+import numpy as np
 # 获取当前脚本的文件路径
 current_path = os.path.abspath(__file__)
 # 获取项目根目录的路径
@@ -37,11 +38,14 @@ if __name__ == '__main__':
     add_arg = functools.partial(add_arguments, argparser=parser)
     add_arg("jsonl",    type=str, nargs="+", default=[],       help="jsonl文件路径")
     add_arg("output_jsonl",     type=str, default=None,        help="存储jsonl文件路径")
+    add_arg("shuffle",     type=bool, default=True,        help="打乱顺序")
     args = parser.parse_args()
     output_jsonl=[]
     for json in args.jsonl:
         json=os.path.join(home_dir,json)
         datas = read_jsonlines(json)
-        output_jsonl.append(datas)
+        output_jsonl.extend(datas)
+    if args.shuffle:
+        np.random.shuffle(output_jsonl)
     write_jsonlines(makedirs(os.path.join(home_dir,args.output_jsonl)), output_jsonl)
 

@@ -65,6 +65,8 @@ class CustomDataset(Dataset):
                  orig_sample_rate=200,
                  min_duration=0.5,
                  max_duration=30,
+                 combine_sentences=False,
+                 split_sentences=False,
                  subj=None,
                  augment_config_path=None):
         """
@@ -91,6 +93,8 @@ class CustomDataset(Dataset):
         self.language = language
         self.filter_dataset = filter_dataset
         self.timestamps = timestamps
+        self.combine_sentences = combine_sentences
+        self.split_sentences = split_sentences
         self.data_list_dir = data_list_dir
         self.modal = modal
         self.modal_ch = modal_ch
@@ -177,6 +181,11 @@ class CustomDataset(Dataset):
         audio_file = data_list[self.modal]["path"]
         # print(f'audio_file:{audio_file} self.data_list_dir{self.data_list_dir} data_list[self.modal]["path"]:{data_list[self.modal]["path"]}')
         assert audio_file is not None
+        dataset_name=None
+        if 'schoffelen' in audio_file:
+            dataset_name='schoffelen'
+        elif 'gwilliams' in audio_file:
+            dataset_name='gwilliams'
         transcript = data_list["sentences"] if self.timestamps else data_list["sentence"]
         # transcript[0]['text']=f'{np.random.randint(0, 10)}'  #
         # transcript = transcript[:1]
@@ -184,10 +193,15 @@ class CustomDataset(Dataset):
         if self.modal == 'eeg':
             sample = np.load(audio_file)
             # assert sample.shape[0] < sample.shape[1], f'eeg shape should be [ch,len],now shape is {sample.shape},data idx{idx}'
-            if self.modal_ch==273: #todo 现在还没有想好怎么取一部分通道，就先这样特事特办了。
+            if dataset_name=='schoffelen': #todo 现在还没有想好怎么取一部分通道，就先这样特事特办了。
                 sample = sample[28:301]
+            elif dataset_name=='gwilliams':
+                sample = sample[:208]
             else:
                 sample = sample[:self.modal_ch]
+            # 如果channel更多，就padding到指定多的通道数
+            if self.modal_ch>sample.shape[0]:
+                sample=self.pad_sample_ch(sample)
             sample = sample.T  # convert to shape[len,ch]
             sample_rate = self.orig_sample_rate
         elif self.modal == 'speech':
@@ -201,33 +215,58 @@ class CustomDataset(Dataset):
         sample = sample.T  # eeg:[ch, len]
         # print(sample.shape)
         if self.modal == 'eeg':
-            # 先滤波
-            # sample = lowpass_filter(sample, cutoff_freq=150, sample_freq=self.orig_sample_rate)
-            # # osamplelen=sample.shape
-            # sample = self.resample(sample, self.orig_sample_rate, self.signal_sample_rate)
-            # print(f'原sample{osamplelen},resample后长度{sample.shape},原sr是{self.orig_sample_rate},现sr是{self.signal_sample_rate}')
-            # sample, clipped_ratio = preprocess_eeg_data(sample)
             sample_rate = self.signal_sample_rate
             # assert clipped_ratio < 0.2
         # 数据增强
         if self.augment_configs:
             # 只有训练的时候才会增强数据
             if self.mode == 'train':
-                # pass
-                # print('train with aug')
                 sample, sample_rate = self.augment_audio(sample, sample_rate)
         # 重采样
 
-        # if self.modal=='eeg':
-        #     if self.signal_sample_rate != 1000:
-        #         sample = self.resample(sample, orig_sr=1000, target_sr=self.signal_sample_rate)
-        # elif self.modal=='speech':
-        #     if self.signal_sample_rate != sample_rate:
-        #         sample = self.resample(sample, orig_sr=sample_rate, target_sr=self.signal_sample_rate)
-        # else:
-        #     raise NotImplementedError
-        # sample should be of shape [ch,len]
         return sample, sample_rate, transcript, language
+
+    def _get_list_data_random_split(self,idx):
+        sample, sample_rate, transcript, language=self._get_list_data(idx)
+        ratio=np.random.rand()
+        ratio=ratio*0.8+0.2
+        words=transcript.split()
+        seg_sample_length=int(sample.shape[1]*ratio)
+        seg_transcript_length=max(int(len(words) *ratio),1)
+        if np.random.rand()>0.5:# 截取后面的一段
+            sample=sample[:,-seg_sample_length:]
+            words=words[-seg_transcript_length:]
+        else:
+            sample=sample[:,:seg_sample_length]
+            words=words[:seg_transcript_length]
+        transcript=' '.join(words)
+        return sample, sample_rate, transcript, language
+
+    def _get_list_data_random(self,idx):
+        # 这个会把sample的空间填满。每个sample之间有随机2到4s的间隔。
+        # 现在只支持 无timestamps,单language
+        assert self.timestamps is False
+        max_allow_length=int(self.max_duration*self.signal_sample_rate)
+        sample, sample_rate, transcript, language=self._get_list_data(idx)
+        if np.random.rand()>0.5:
+            ch,sample_length=sample.shape
+            full_length=sample_length
+            for i in range(3): # 最多加三句
+                rand_sec=np.random.random()
+                rand_length=int(rand_sec*self.signal_sample_rate)
+
+                new_sample, sample_rate, new_transcript, language = self._get_list_data(np.random.randint(self.__len__()))
+
+                if new_sample.shape[1]+rand_length+full_length<max_allow_length:
+                    # print(sample.shape,[ch,rand_length],new_sample.shape)
+                    sample=np.concatenate([sample,np.zeros([ch,rand_length]),new_sample],axis=1)
+                    transcript=transcript+f'{"" if transcript.endswith(".") else "."}'+' '+new_transcript
+                    # print(i,transcript)
+                    full_length=full_length+rand_length+new_sample.shape[1]
+        return sample, sample_rate, transcript, language
+
+
+
 
     def _load_timestamps_transcript(self, transcript: List[dict]):
         level = self.level
@@ -325,10 +364,17 @@ class CustomDataset(Dataset):
                     w['end'] = w['end'] + now_shift_time
         return sample, transcript
 
+
+
     def __getitem__(self, idx):
         # try:
         # 从数据列表里面获取音频数据、采样率和文本
-        sample, sample_rate, transcript, language = self._get_list_data(idx=idx)
+        if self.combine_sentences:
+            sample, sample_rate, transcript, language = self._get_list_data_random(idx=idx)
+        elif self.split_sentences:
+            sample, sample_rate, transcript, language = self._get_list_data_random_split(idx=idx)
+        else:
+            sample, sample_rate, transcript, language = self._get_list_data(idx=idx)
         # transcript[0]=f'{np.random.choice([i for i in range(10)])}'
         # 将sample进行时间漂移，并将transcript的时间对齐。
         if self.mode == 'train':
@@ -382,6 +428,17 @@ class CustomDataset(Dataset):
                                 int(self.signal_sample_rate * self.max_duration)), ' sample shape should be [self.modal_ch,int(self.signal_sample_rate*30))]'
         # print(f'after pad eeg:{sample.shape}')
         return [sample]
+
+    def pad_sample_ch(self,sample):
+        assert len(sample.shape)==2,f'sample.shape is now {sample.shape}'
+        if sample.shape[0]==self.modal_ch:
+            return sample
+        # 现在就是说直接融合两个数据集。在后面添加通道
+        assert sample.shape[0]<self.modal_ch,'sample channel must be less than modal channel'
+        sample = np.pad(sample, pad_width=((0,  self.modal_ch - sample.shape[0]), (0,0)))
+        assert sample.shape[0]==self.modal_ch,f'after pad ch, sample channel should be {self.modal_ch}, now is {sample.shape[0]}'
+        return sample
+
 
     def process_transcript(self, transcript):
         data = self.processor(text=transcript)
@@ -438,17 +495,26 @@ class CustomDataset(Dataset):
                 elif self.modal == 'eeg':
                     # eeg 目前是做椒盐噪声，即随机掩码
                     # print('eeg mask')
-                    time_mask_len = torch.randint(20, 40, (1,)).item()
-                    ch_mask_len = torch.randint(1, 4, (1,)).item()
-                    prob = torch.rand(1).item() * 0.3 + 0.01
-                    augmentor = RandomShapeMasker(unit=(ch_mask_len, time_mask_len), mask_prob=prob, length_unit=20,
-                                                  length_prob=(0.1, 0.2), channel_num=(1, 6), random_types=(1, 2, 3))
+                    augmentor = RandomShapeMasker(**v['kwargs'])
                     mask = augmentor(sample.shape)
                     del augmentor
                     mask = np.array(mask)
                     sample = sample * mask
                 else:
                     raise NotImplementedError
+            if k == 'taylor' and torch.rand(1).item() < v['prob']:
+                # 随机裁剪前后10个点的数据
+                if self.modal == 'eeg':
+                    mask=np.ones_like(sample)
+                    # 把前后的随机10点的数据裁剪掉。
+                    num=np.random.randint(1,10)
+                    mask[:,:num]=0
+                    num1=np.random.randint(1,10)
+                    mask[:,-num1:]=0
+                    # print(num,num1)
+                    sample=sample*mask
+
+
         return sample, sample_rate
 
     # 改变语速

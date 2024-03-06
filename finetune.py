@@ -13,7 +13,7 @@ import logging
 from peft import LoraConfig, get_peft_model, AdaLoraConfig, PeftModel, prepare_model_for_kbit_training
 from transformers import Seq2SeqTrainer, Seq2SeqTrainingArguments, WhisperProcessor
 from utils.callback import SavePeftModelCallback
-from utils.data_utils import DataCollatorSpeechSeq2SeqWithPadding
+from utils.data_utils import DataCollatorSpeechSeq2SeqWithPadding,get_part_of_dataset
 from utils.model_utils import load_from_checkpoint,trainer_save_model,compute_accuracy,projection_module
 from utils.load_model import WhisperForConditionalGeneration,match_modules,match_modules_string
 from utils.reader import CustomDataset
@@ -54,9 +54,14 @@ add_arg("resume_from_checkpoint",      type=str, default=None, help="恢复训�
 add_arg("per_device_train_batch_size", type=int, default=2,    help="训练的batch size")
 add_arg("per_device_eval_batch_size",  type=int, default=2,    help="评估的batch size")
 add_arg("gradient_accumulation_steps", type=int, default=1,    help="梯度累积步数")
+add_arg("fine_tune_layers", type=int, default=None,    help="微调base model的前多少层")
 add_arg("device", type=str, default='auto',    help="device")
 add_arg("config_name", type=str, default='base',    help="conv1 module")
+add_arg("data_ratio", type=float, default=None,    help="训练集使用数据的比例")
 add_arg("random_initialize_whisper", type=bool, default=False,    help="随机初始化whisper")
+add_arg("combine_sentences", type=bool, default=False,    help="训练时增加多个句子")
+add_arg("split_sentences", type=bool, default=False,    help="训练时将句子拆分")
+add_arg("ft_full", type=bool, default=False,    help="微调整个模型")
 args = parser.parse_args()
 print_arguments(args)
 
@@ -80,6 +85,8 @@ train_dataset = CustomDataset(
     language=args.language,
     filter_dataset=args.filter_dataset,
     timestamps=args.timestamps,
+    combine_sentences=args.combine_sentences,
+    split_sentences=args.split_sentences,
     min_duration=args.min_audio_len,
     max_duration=args.max_audio_len,
     augment_config_path=args.augment_config_path)
@@ -97,7 +104,8 @@ test_dataset = CustomDataset(
     min_duration=args.min_audio_len,
     max_duration=args.max_audio_len)
 
-
+if args.data_ratio is not None:
+    train_dataset.data_list=get_part_of_dataset(train_dataset.data_list,args.data_ratio)
 
 print(f"训练数据：{len(train_dataset)}，测试数据：{len(test_dataset)}")
 # 数据padding器
@@ -132,7 +140,7 @@ kwargs={
     'd_model':model.model.encoder.conv2.in_channels,
 }
 
-conv1=projection_module(config_name='base',**kwargs)
+conv1=projection_module(config_name=args.config_name,**kwargs)
 
 
 # conv1 = nn.Conv1d(meg_ch, d_model, kernel_size=3, padding=1)
@@ -150,11 +158,11 @@ if args.lora_model is not None:
             'd_model':model.model.encoder.conv2.in_channels,
         }
 
-        conv1=projection_module(config_name='base',**kwargs)
+        conv1=projection_module(config_name=args.config_name,**kwargs)
         conv1 = conv1.to(device)
         model.model.encoder.set_input_embeddings(conv1)
 if args.random_initialize_whisper:
-    model.post_init()
+    model.post_init() #todo 这个没用，还不会弄
     print('模型已被初始化')
 # model.save_pretrained(save_directory=os.path.join(args.output_dir, "checkpoint-init"))
 model.config.forced_decoder_ids = None
@@ -178,7 +186,12 @@ if args.resume_from_checkpoint:
 else:
     print(f'adding LoRA modules...')
     # prefixes = [f'model.encoder.layers.{i}.' for i in [0,1,2,3]]
-    prefixes = ['model.encoder']
+    if args.fine_tune_layers is not None:
+        prefixes = [f'model.encoder.layers.{i}.' for i in range(args.fine_tune_layers)]
+    elif args.ft_full:
+        prefixes = ['model']
+    else:
+        prefixes = ['model.encoder']
     suffixes = ["k_proj", "q_proj", "v_proj", "out_proj", "fc1", "fc2"]
     # model_named_modules=[]
     # target_modules = []
