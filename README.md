@@ -10,4 +10,8 @@ how to run the code?
 3. run evaluation with python evaluation.py
 
 
+# contact
+please do not hesitate to send me email and start collaboration with us
+yyang937@connect.hkust-gz.edu.cn
+
 Thanks yeyupiaoling for finetuning whisper pipeline https://github.com/yeyupiaoling/Whisper-Finetune
