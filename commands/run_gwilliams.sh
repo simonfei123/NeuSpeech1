@@ -1,3 +1,8 @@
+CUDA_VISIBLE_DEVICES=7 python finetune.py --per_device_train_batch_size=64 --per_device_eval_batch_size=64 --output_dir='output1' --eval_steps=500 --save_steps=500 --learning_rate=1e-3 --fp16=False --num_train_epochs=200 --warmup_steps=500 --max_audio_len=30 --use_8bit=False --num_workers=4 --modal='eeg' --eeg_ch=224 --sampling_rate=200 --orig_sample_rate=200 --train_data='datasets/gwilliams2023/preprocess/split1/train.jsonl' --test_data='datasets/gwilliams2023/preprocess/split1/val.jsonl' --base_model='openai/whisper-base' --local_files_only=False --device cuda:7
+
+CUDA_VISIBLE_DEVICES=7 python evaluation.py --model_path='openai/whisper-base' --lora_model="output1/whisper-base/checkpoint-final" --test_data='datasets/gwilliams2023/preprocess/split1/test.jsonl' --modal='eeg' --sampling_rate=200 --eeg_ch=224 --batch_size=1 --num_workers=4 --language='English' --timestamps=False --local_files_only=False
+CUDA_VISIBLE_DEVICES=7 python evaluation.py --model_path='openai/whisper-base' --lora_model="output1/whisper-base/checkpoint-29000" --test_data='datasets/gwilliams2023/preprocess/split1/test.jsonl' --modal='eeg' --sampling_rate=200 --eeg_ch=224 --batch_size=1 --num_workers=4 --language='English' --timestamps=False --local_files_only=False
+
 CUDA_VISIBLE_DEVICES=0,1 torchrun --nproc_per_node=2 finetune.py --per_device_train_batch_size=8\
  --per_device_eval_batch_size=12 --output_dir='output1' --eval_steps=1000 --save_steps=1000 --learning_rate=1e-3 --fp16=False\
  --num_train_epochs=500 --warmup_steps=500 --max_audio_len=30\
@@ -6,6 +11,8 @@ CUDA_VISIBLE_DEVICES=0,1 torchrun --nproc_per_node=2 finetune.py --per_device_tr
  --test_data='/hpc2hdd/home/yyang937/datasets/gwilliams2023/preprocess1/split1/val.jsonl'\
  --base_model='openai/whisper-base'\
  --local_files_only=False
+
+CUDA_VISIBLE_DEVICES=6,7 torchrun --nproc_per_node=2 finetune.py --per_device_train_batch_size=8 --per_device_eval_batch_size=12 --output_dir='output1' --eval_steps=1000 --save_steps=1000 --learning_rate=1e-3 --fp16=False --num_train_epochs=500 --warmup_steps=500 --max_audio_len=30 --use_8bit=False --num_workers=4 --modal='eeg' --eeg_ch=224 --sampling_rate=200 --orig_sample_rate=200 --train_data='datasets/gwilliams2023/preprocess/split1/train.jsonl' --test_data='datasets/gwilliams2023/preprocess/split1/val.jsonl' --base_model='openai/whisper-base' --local_files_only=False
 
 python finetune.py --per_device_train_batch_size=64\
  --per_device_eval_batch_size=64 --output_dir='output1' --eval_steps=500 --save_steps=500 --learning_rate=1e-3 --fp16=False\
@@ -23,7 +30,6 @@ python evaluation.py\
  --test_data='/hpc2hdd/home/yyang937/datasets/gwilliams2023/preprocess2/split1/test.jsonl'\
  --modal='eeg' --sampling_rate=200 --eeg_ch=224 --batch_size=1 --num_workers=4 --language='English'\
  --timestamps=False --local_files_only=False
-
 
 
 python finetune.py --per_device_train_batch_size=64\

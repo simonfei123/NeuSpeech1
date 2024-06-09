@@ -18,3 +18,11 @@ uvicorn>=0.21.1
 fastapi>=0.95.1
 starlette>=0.26.1
 tensorboardX>=2.2
+mne==1.7.0
+jsonlines==4.0.0
+moviepy==1.0.3
+openai-whisper==20231117
+yake==0.4.8
+torchmetrics==1.4.0
+bert-score==0.3.13
+nltk==3.8.1

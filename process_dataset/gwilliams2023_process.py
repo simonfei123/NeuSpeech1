@@ -7,7 +7,7 @@ from sklearn.preprocessing import RobustScaler
 import jsonlines
 import os
 import librosa
-from IPython.display import Audio,display
+# from IPython.display import Audio,display
 import tqdm
 
 def detect_outliers(arr):
@@ -222,8 +222,8 @@ def detect_outliers_json(json_dict):
         print(do,json_dict)
     return do
 if __name__ == '__main__':
-    replace_folder = 'preprocess5'
-    folder_path = '/hpc2hdd/home/yyang937/datasets/gwilliams2023/download/'
+    replace_folder = 'preprocess'
+    folder_path = 'datasets/gwilliams2023/download/'
     extension = 'events.tsv'
     events_tsv_list = find_files_with_extension(folder_path, extension)
 
@@ -249,7 +249,7 @@ if __name__ == '__main__':
     # 第二种分法是将session1的数据分为训练和验证9:1，测试集为整个session2的数据。
     import random
 
-    data = read_jsonlines(f'/hpc2hdd/home/yyang937/datasets/gwilliams2023/{replace_folder}/info.jsonl')  # 替换为你的数据列表
+    data = read_jsonlines(f'datasets/gwilliams2023/{replace_folder}/info.jsonl')  # 替换为你的数据列表
 
 
     random.shuffle(data)  # 随机打乱数据列表

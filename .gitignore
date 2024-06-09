@@ -3,8 +3,9 @@ __pycache__/
 models/
 base-model/
 output/
-dataset/*
-!dataset/test.wav
+output1/
+datasets/*
+!datasets/test.wav
 test.py
 /metrics/bert-base-chinese/config.json
 /match_video_eeg/eeg_feat_extractor.py

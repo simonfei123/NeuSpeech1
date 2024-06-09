@@ -15,13 +15,13 @@ import whisper
 import torch
 import soundfile as sf
 import numpy as np
-import bypy
+# import bypy
 import librosa
-import jieba
+# import jieba
 from collections import Counter
 import jsonlines
 import re
-from hanziconv import HanziConv
+# from hanziconv import HanziConv
 from scipy.signal import hilbert, butter, filtfilt,firwin
 import scipy.signal as sg
 
